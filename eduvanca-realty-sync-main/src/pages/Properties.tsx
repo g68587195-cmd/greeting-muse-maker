@@ -1,0 +1,145 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Plus, Building2 } from "lucide-react";
+import { PropertyDialog } from "@/components/properties/PropertyDialog";
+import { PropertyCard } from "@/components/properties/PropertyCard";
+import { PropertyDetailModal } from "@/components/properties/PropertyDetailModal";
+import { toast } from "sonner";
+
+export interface Property {
+  id: string;
+  title: string;
+  description: string | null;
+  property_type: string;
+  status: string;
+  category?: string;
+  address: string;
+  city: string;
+  state: string | null;
+  zip_code: string | null;
+  country: string;
+  price: number;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  square_feet: number | null;
+  year_built: number | null;
+  amenities: string[] | null;
+  created_at: string;
+  property_images?: { id: string; image_url: string; is_primary: boolean }[];
+}
+
+export default function Properties() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("properties")
+      .select(`
+        *,
+        property_images(id, image_url, is_primary, display_order)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Error fetching properties");
+      console.error(error);
+    } else {
+      setProperties(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handlePropertyClick = (property: Property) => {
+    setSelectedProperty(property);
+    setDetailOpen(true);
+  };
+
+  const handleEdit = (property: Property) => {
+    setSelectedProperty(property);
+    setDialogOpen(true);
+    setDetailOpen(false);
+  };
+
+  const handleDelete = async (propertyId: string) => {
+    const { error } = await supabase
+      .from("properties")
+      .delete()
+      .eq("id", propertyId);
+
+    if (error) {
+      toast.error("Error deleting property");
+    } else {
+      toast.success("Property deleted successfully");
+      fetchProperties();
+      setDetailOpen(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Properties</h1>
+          <p className="text-muted-foreground">Manage your property listings</p>
+        </div>
+        <Button onClick={() => { setSelectedProperty(null); setDialogOpen(true); }}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Property
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      ) : properties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+          <Building2 className="mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-semibold">No properties yet</h3>
+          <p className="mb-4 text-sm text-muted-foreground">Get started by adding your first property</p>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Property
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {properties.map((property) => (
+            <PropertyCard
+              key={property.id}
+              property={property}
+              onClick={() => handlePropertyClick(property)}
+            />
+          ))}
+        </div>
+      )}
+
+      <PropertyDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        property={selectedProperty}
+        onSuccess={fetchProperties}
+      />
+
+      {selectedProperty && (
+        <PropertyDetailModal
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          property={selectedProperty}
+          onEdit={() => handleEdit(selectedProperty)}
+          onDelete={() => handleDelete(selectedProperty.id)}
+        />
+      )}
+    </div>
+  );
+}
