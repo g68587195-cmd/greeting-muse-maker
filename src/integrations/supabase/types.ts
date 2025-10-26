@@ -27,6 +27,7 @@ export type Database = {
           phone: string
           preferences: Json | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           address?: string | null
@@ -40,6 +41,7 @@ export type Database = {
           phone: string
           preferences?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           address?: string | null
@@ -53,6 +55,7 @@ export type Database = {
           phone?: string
           preferences?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -71,6 +74,7 @@ export type Database = {
           source: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           assigned_agent?: string | null
@@ -86,6 +90,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           assigned_agent?: string | null
@@ -101,6 +106,7 @@ export type Database = {
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -132,6 +138,7 @@ export type Database = {
           status: string
           tenant_id: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -145,6 +152,7 @@ export type Database = {
           status?: string
           tenant_id: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -158,6 +166,7 @@ export type Database = {
           status?: string
           tenant_id?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -193,6 +202,7 @@ export type Database = {
           status: Database["public"]["Enums"]["maintenance_status"]
           title: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           actual_cost?: number | null
@@ -210,6 +220,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["maintenance_status"]
           title: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           actual_cost?: number | null
@@ -227,6 +238,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["maintenance_status"]
           title?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -260,6 +272,7 @@ export type Database = {
           status: Database["public"]["Enums"]["payment_status"]
           transaction_id: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           amount: number
@@ -275,6 +288,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"]
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           amount?: number
@@ -290,6 +304,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"]
           transaction_id?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -321,6 +336,7 @@ export type Database = {
           company_address: string | null
           company_email: string | null
           company_gstin: string | null
+          company_logo_url: string | null
           company_name: string | null
           company_phone: string | null
           company_website: string | null
@@ -336,6 +352,7 @@ export type Database = {
           company_address?: string | null
           company_email?: string | null
           company_gstin?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
           company_website?: string | null
@@ -351,6 +368,7 @@ export type Database = {
           company_address?: string | null
           company_email?: string | null
           company_gstin?: string | null
+          company_logo_url?: string | null
           company_name?: string | null
           company_phone?: string | null
           company_website?: string | null
@@ -367,66 +385,99 @@ export type Database = {
         Row: {
           address: string
           amenities: string[] | null
+          area_acres: number | null
+          area_cents: number | null
           bathrooms: number | null
           bedrooms: number | null
+          boundary_wall: boolean | null
           category: string
           city: string
+          corner_plot: boolean | null
           country: string
           created_at: string
           created_by: string | null
           description: string | null
+          dtcp_approved: boolean | null
+          electricity_available: boolean | null
+          facing: string | null
           id: string
+          plot_dimensions: string | null
           price: number
           property_type: Database["public"]["Enums"]["property_type"]
+          road_width_feet: number | null
           square_feet: number | null
           state: string | null
           status: Database["public"]["Enums"]["property_status"]
           title: string
           updated_at: string
+          user_id: string | null
+          water_source: string | null
           year_built: number | null
           zip_code: string | null
         }
         Insert: {
           address: string
           amenities?: string[] | null
+          area_acres?: number | null
+          area_cents?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          boundary_wall?: boolean | null
           category?: string
           city: string
+          corner_plot?: boolean | null
           country?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          dtcp_approved?: boolean | null
+          electricity_available?: boolean | null
+          facing?: string | null
           id?: string
+          plot_dimensions?: string | null
           price: number
           property_type: Database["public"]["Enums"]["property_type"]
+          road_width_feet?: number | null
           square_feet?: number | null
           state?: string | null
           status?: Database["public"]["Enums"]["property_status"]
           title: string
           updated_at?: string
+          user_id?: string | null
+          water_source?: string | null
           year_built?: number | null
           zip_code?: string | null
         }
         Update: {
           address?: string
           amenities?: string[] | null
+          area_acres?: number | null
+          area_cents?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          boundary_wall?: boolean | null
           category?: string
           city?: string
+          corner_plot?: boolean | null
           country?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
+          dtcp_approved?: boolean | null
+          electricity_available?: boolean | null
+          facing?: string | null
           id?: string
+          plot_dimensions?: string | null
           price?: number
           property_type?: Database["public"]["Enums"]["property_type"]
+          road_width_feet?: number | null
           square_feet?: number | null
           state?: string | null
           status?: Database["public"]["Enums"]["property_status"]
           title?: string
           updated_at?: string
+          user_id?: string | null
+          water_source?: string | null
           year_built?: number | null
           zip_code?: string | null
         }
@@ -534,6 +585,7 @@ export type Database = {
           terms_and_conditions: string | null
           total_amount: number
           updated_at: string | null
+          user_id: string | null
           valid_until: string | null
         }
         Insert: {
@@ -555,6 +607,7 @@ export type Database = {
           terms_and_conditions?: string | null
           total_amount?: number
           updated_at?: string | null
+          user_id?: string | null
           valid_until?: string | null
         }
         Update: {
@@ -576,6 +629,7 @@ export type Database = {
           terms_and_conditions?: string | null
           total_amount?: number
           updated_at?: string | null
+          user_id?: string | null
           valid_until?: string | null
         }
         Relationships: [
@@ -611,6 +665,7 @@ export type Database = {
           status: string
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           agent_id?: string | null
@@ -627,6 +682,7 @@ export type Database = {
           status?: string
           transaction_type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           agent_id?: string | null
@@ -643,6 +699,7 @@ export type Database = {
           status?: string
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -946,6 +1003,7 @@ export type Database = {
           total_area_sqft: number | null
           total_budget: number | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           actual_completion_date?: string | null
@@ -983,6 +1041,7 @@ export type Database = {
           total_area_sqft?: number | null
           total_budget?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           actual_completion_date?: string | null
@@ -1020,6 +1079,7 @@ export type Database = {
           total_area_sqft?: number | null
           total_budget?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1064,6 +1124,7 @@ export type Database = {
           unit_number: string | null
           unit_type: string
           updated_at: string | null
+          user_id: string | null
           utilities_included: string[] | null
         }
         Insert: {
@@ -1098,6 +1159,7 @@ export type Database = {
           unit_number?: string | null
           unit_type: string
           updated_at?: string | null
+          user_id?: string | null
           utilities_included?: string[] | null
         }
         Update: {
@@ -1132,6 +1194,7 @@ export type Database = {
           unit_number?: string | null
           unit_type?: string
           updated_at?: string | null
+          user_id?: string | null
           utilities_included?: string[] | null
         }
         Relationships: [

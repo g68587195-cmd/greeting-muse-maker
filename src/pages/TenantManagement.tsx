@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { TenantDialog } from "@/components/tenant/TenantDialog";
 import { TenantDetailModal } from "@/components/tenant/TenantDetailModal";
 import { format } from "date-fns";
+import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 export default function TenantManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -18,6 +19,9 @@ export default function TenantManagement() {
   const { data: tenants = [], isLoading } = useQuery({
     queryKey: ["tenants"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("tenant_management")
         .select(`
@@ -25,7 +29,8 @@ export default function TenantManagement() {
           properties(title, address),
           clients:tenant_id(full_name, email, phone)
         `)
-        .order("created_at", { ascending: false });
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false});
       if (error) throw error;
       return data;
     },
@@ -61,7 +66,7 @@ export default function TenantManagement() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {tenants.map((tenant) => (
             <Card 
               key={tenant.id} 
@@ -72,12 +77,12 @@ export default function TenantManagement() {
               }}
             >
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <Home className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">{tenant.unit_type}</CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Home className="h-5 w-5 text-primary flex-shrink-0" />
+                    <CardTitle className="text-base md:text-lg truncate">{tenant.unit_type}</CardTitle>
                   </div>
-                  <Badge className={getStatusColor(tenant.lease_status)}>
+                  <Badge className={`${getStatusColor(tenant.lease_status)} flex-shrink-0`}>
                     {tenant.lease_status}
                   </Badge>
                 </div>
@@ -85,7 +90,7 @@ export default function TenantManagement() {
               <CardContent className="space-y-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Tenant</p>
-                  <p className="font-medium">{tenant.clients?.full_name || "N/A"}</p>
+                  <p className="font-medium truncate">{tenant.clients?.full_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Property</p>
@@ -93,16 +98,16 @@ export default function TenantManagement() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Rent</p>
-                  <p className="font-bold text-lg text-primary">₹{tenant.rental_amount?.toLocaleString()}/mo</p>
+                  <p className="font-bold text-lg text-primary">₹{formatIndianNumber(tenant.rental_amount)}/mo</p>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-muted-foreground">Start Date</p>
-                    <p>{format(new Date(tenant.lease_start_date), "dd MMM yyyy")}</p>
+                    <p className="truncate">{format(new Date(tenant.lease_start_date), "dd MMM yyyy")}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-muted-foreground">End Date</p>
-                    <p>{format(new Date(tenant.lease_end_date), "dd MMM yyyy")}</p>
+                    <p className="truncate">{format(new Date(tenant.lease_end_date), "dd MMM yyyy")}</p>
                   </div>
                 </div>
               </CardContent>

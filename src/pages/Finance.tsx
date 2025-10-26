@@ -17,13 +17,17 @@ export default function Finance() {
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["payments"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("payments")
         .select(`
           *,
           clients(full_name, email, phone)
         `)
-        .order("created_at", { ascending: false });
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false});
       if (error) throw error;
       return data;
     },
@@ -32,7 +36,13 @@ export default function Finance() {
   const { data: stats } = useQuery({
     queryKey: ["payment-stats"],
     queryFn: async () => {
-      const { data: allPayments } = await supabase.from("payments").select("amount, status");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { total: 0, paid: 0, pending: 0, overdue: 0 };
+      
+      const { data: allPayments } = await supabase
+        .from("payments")
+        .select("amount, status")
+        .eq("user_id", user.id);
       const total = allPayments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const paid = allPayments?.filter(p => p.status === "paid").reduce((sum, p) => sum + Number(p.amount), 0) || 0;
       const pending = allPayments?.filter(p => p.status === "pending").reduce((sum, p) => sum + Number(p.amount), 0) || 0;
@@ -108,7 +118,7 @@ export default function Finance() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {payments.map((payment) => (
-            <Card key={payment.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedPayment(payment); setIsDialogOpen(true); }}>
+            <Card key={payment.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -140,6 +150,23 @@ export default function Finance() {
                       <p>{format(new Date(payment.due_date), "dd MMM yyyy")}</p>
                     </div>
                   )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedPayment(payment); setIsDialogOpen(true); }} className="flex-1">
+                    Edit
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={async () => {
+                    const { error } = await supabase.from("payments").delete().eq("id", payment.id);
+                    if (error) {
+                      toast.error("Error deleting payment");
+                    } else {
+                      toast.success("Payment deleted successfully");
+                      queryClient.invalidateQueries({ queryKey: ["payments"] });
+                      queryClient.invalidateQueries({ queryKey: ["payment-stats"] });
+                    }
+                  }}>
+                    Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>

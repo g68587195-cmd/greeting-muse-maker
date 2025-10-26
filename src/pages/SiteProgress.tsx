@@ -19,10 +19,14 @@ export default function SiteProgress() {
   const { data: sites = [], isLoading } = useQuery({
     queryKey: ["sites"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("site_progress")
         .select("*")
-        .order("created_at", { ascending: false });
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false});
       if (error) throw error;
       return data;
     },
@@ -59,16 +63,16 @@ export default function SiteProgress() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {sites.map((site) => (
             <Card key={site.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedSite(site); setDetailModalOpen(true); }}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <Construction className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg truncate">{site.project_name}</CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Construction className="h-5 w-5 text-primary flex-shrink-0" />
+                    <CardTitle className="text-base md:text-lg truncate">{site.project_name}</CardTitle>
                   </div>
-                  <Badge className={getStatusColor(site.project_status)}>
+                  <Badge className={`${getStatusColor(site.project_status)} flex-shrink-0`}>
                     {site.project_status}
                   </Badge>
                 </div>
@@ -76,7 +80,7 @@ export default function SiteProgress() {
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="text-sm">{site.city}, {site.state || ""}</p>
+                  <p className="text-sm truncate">{site.city}, {site.state || ""}</p>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
@@ -85,15 +89,15 @@ export default function SiteProgress() {
                   </div>
                   <Progress value={site.overall_progress_percentage} className="h-2" />
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-muted-foreground">Start Date</p>
-                    <p>{format(new Date(site.start_date), "dd MMM yyyy")}</p>
+                    <p className="truncate">{format(new Date(site.start_date), "dd MMM yyyy")}</p>
                   </div>
                   {site.expected_completion_date && (
                     <div className="text-right">
                       <p className="text-muted-foreground">Expected End</p>
-                      <p>{format(new Date(site.expected_completion_date), "dd MMM yyyy")}</p>
+                      <p className="truncate">{format(new Date(site.expected_completion_date), "dd MMM yyyy")}</p>
                     </div>
                   )}
                 </div>

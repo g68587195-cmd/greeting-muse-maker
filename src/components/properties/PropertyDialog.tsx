@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -64,6 +65,13 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
     e.preventDefault();
     setLoading(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const data: any = {
       title: formData.get("title") as string,
@@ -81,6 +89,17 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       bathrooms: parseInt(formData.get("bathrooms") as string) || null,
       square_feet: parseFloat(formData.get("square_feet") as string) || null,
       year_built: parseInt(formData.get("year_built") as string) || null,
+      area_cents: parseFloat(formData.get("area_cents") as string) || null,
+      area_acres: parseFloat(formData.get("area_acres") as string) || null,
+      dtcp_approved: formData.get("dtcp_approved") === "on",
+      facing: formData.get("facing") as string || null,
+      plot_dimensions: formData.get("plot_dimensions") as string || null,
+      road_width_feet: parseFloat(formData.get("road_width_feet") as string) || null,
+      corner_plot: formData.get("corner_plot") === "on",
+      electricity_available: formData.get("electricity_available") === "on",
+      water_source: formData.get("water_source") as string || null,
+      boundary_wall: formData.get("boundary_wall") === "on",
+      user_id: user.id,
     };
 
     let result;
@@ -90,7 +109,8 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       result = await supabase
         .from("properties")
         .update(data)
-        .eq("id", property.id);
+        .eq("id", property.id)
+        .eq("user_id", user.id);
       propertyId = property.id;
     } else {
       const insertResult = await supabase.from("properties").insert([data]).select();
@@ -144,21 +164,16 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{property ? "Edit Property" : "Add New Property"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                name="title"
-                defaultValue={property?.title}
-                required
-              />
+              <Input id="title" name="title" defaultValue={property?.title} required />
             </div>
 
             <div className="space-y-2">
@@ -208,114 +223,125 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
 
             <div className="space-y-2">
               <Label htmlFor="price">Price (₹) *</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                defaultValue={property?.price}
-                required
-              />
+              <Input id="price" name="price" type="number" step="0.01" defaultValue={property?.price} required />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="area_cents">Area (Cents)</Label>
+              <Input id="area_cents" name="area_cents" type="number" step="0.01" defaultValue={property?.area_cents || ""} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="area_acres">Area (Acres)</Label>
+              <Input id="area_acres" name="area_acres" type="number" step="0.01" defaultValue={property?.area_acres || ""} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="square_feet">Square Feet</Label>
+              <Input id="square_feet" name="square_feet" type="number" step="0.01" defaultValue={property?.square_feet || ""} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="plot_dimensions">Plot Dimensions</Label>
+              <Input id="plot_dimensions" name="plot_dimensions" placeholder="e.g., 40x60 ft" defaultValue={property?.plot_dimensions || ""} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="facing">Facing</Label>
+              <Select name="facing" defaultValue={property?.facing || ""}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select facing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="north">North</SelectItem>
+                  <SelectItem value="south">South</SelectItem>
+                  <SelectItem value="east">East</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
+                  <SelectItem value="north_east">North-East</SelectItem>
+                  <SelectItem value="north_west">North-West</SelectItem>
+                  <SelectItem value="south_east">South-East</SelectItem>
+                  <SelectItem value="south_west">South-West</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="road_width_feet">Road Width (Feet)</Label>
+              <Input id="road_width_feet" name="road_width_feet" type="number" step="0.01" defaultValue={property?.road_width_feet || ""} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="water_source">Water Source</Label>
+              <Input id="water_source" name="water_source" placeholder="e.g., Borewell, Corporation" defaultValue={property?.water_source || ""} />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={property?.description || ""}
-              rows={3}
-            />
+            <Textarea id="description" name="description" defaultValue={property?.description || ""} rows={3} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="address">Address *</Label>
-              <Input
-                id="address"
-                name="address"
-                defaultValue={property?.address}
-                required
-              />
+              <Input id="address" name="address" defaultValue={property?.address} required />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="city">City *</Label>
-              <Input
-                id="city"
-                name="city"
-                defaultValue={property?.city}
-                required
-              />
+              <Input id="city" name="city" defaultValue={property?.city} required />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                name="state"
-                defaultValue={property?.state || ""}
-              />
+              <Input id="state" name="state" defaultValue={property?.state || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="zip_code">ZIP Code</Label>
-              <Input
-                id="zip_code"
-                name="zip_code"
-                defaultValue={property?.zip_code || ""}
-              />
+              <Input id="zip_code" name="zip_code" defaultValue={property?.zip_code || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                name="country"
-                defaultValue={property?.country || "India"}
-              />
+              <Input id="country" name="country" defaultValue={property?.country || "India"} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bedrooms">Bedrooms</Label>
-              <Input
-                id="bedrooms"
-                name="bedrooms"
-                type="number"
-                defaultValue={property?.bedrooms || ""}
-              />
+              <Input id="bedrooms" name="bedrooms" type="number" defaultValue={property?.bedrooms || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bathrooms">Bathrooms</Label>
-              <Input
-                id="bathrooms"
-                name="bathrooms"
-                type="number"
-                defaultValue={property?.bathrooms || ""}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="square_feet">Square Feet</Label>
-              <Input
-                id="square_feet"
-                name="square_feet"
-                type="number"
-                step="0.01"
-                defaultValue={property?.square_feet || ""}
-              />
+              <Input id="bathrooms" name="bathrooms" type="number" defaultValue={property?.bathrooms || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="year_built">Year Built</Label>
-              <Input
-                id="year_built"
-                name="year_built"
-                type="number"
-                defaultValue={property?.year_built || ""}
-              />
+              <Input id="year_built" name="year_built" type="number" defaultValue={property?.year_built || ""} />
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="font-semibold">Additional Features</h3>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="dtcp_approved" name="dtcp_approved" defaultChecked={property?.dtcp_approved} />
+                <Label htmlFor="dtcp_approved" className="font-normal">DTCP Approved</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="corner_plot" name="corner_plot" defaultChecked={property?.corner_plot} />
+                <Label htmlFor="corner_plot" className="font-normal">Corner Plot</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="electricity_available" name="electricity_available" defaultChecked={property?.electricity_available !== false} />
+                <Label htmlFor="electricity_available" className="font-normal">Electricity Available</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="boundary_wall" name="boundary_wall" defaultChecked={property?.boundary_wall} />
+                <Label htmlFor="boundary_wall" className="font-normal">Boundary Wall</Label>
+              </div>
             </div>
           </div>
 
@@ -323,18 +349,8 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
             <div className="space-y-2">
               <Label>Property Images (Max 10, Total 15MB)</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <Label
-                  htmlFor="image-upload"
-                  className="flex items-center gap-2 cursor-pointer px-4 py-2 border rounded-md hover:bg-accent"
-                >
+                <Input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" id="image-upload" />
+                <Label htmlFor="image-upload" className="flex items-center gap-2 cursor-pointer px-4 py-2 border rounded-md hover:bg-accent">
                   <Upload className="h-4 w-4" />
                   Choose Images
                 </Label>
@@ -346,18 +362,8 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6"
-                        onClick={() => removeImage(index)}
-                      >
+                      <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-24 object-cover rounded" />
+                      <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeImage(index)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>

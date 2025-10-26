@@ -25,6 +25,16 @@ export interface Property {
   square_feet: number | null;
   year_built: number | null;
   amenities: string[] | null;
+  area_cents: number | null;
+  area_acres: number | null;
+  dtcp_approved: boolean | null;
+  facing: string | null;
+  plot_dimensions: string | null;
+  road_width_feet: number | null;
+  corner_plot: boolean | null;
+  electricity_available: boolean | null;
+  water_source: string | null;
+  boundary_wall: boolean | null;
   created_at: string;
   property_images?: { id: string; image_url: string; is_primary: boolean }[];
 }
@@ -42,12 +52,19 @@ export default function Properties() {
 
   const fetchProperties = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("properties")
       .select(`
         *,
         property_images(id, image_url, is_primary, display_order)
       `)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
