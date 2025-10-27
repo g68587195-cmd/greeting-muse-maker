@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -34,7 +35,6 @@ const formSchema = z.object({
   lead_name: z.string().min(1, "Name is required"),
   lead_email: z.string().email().optional().or(z.literal("")),
   lead_phone: z.string().optional(),
-  client_id: z.string().optional(),
   property_id: z.string().optional(),
   status: z.string(),
   source: z.string().optional(),
@@ -60,7 +60,13 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, full_name");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, full_name")
+        .eq("user_id", user.id)
+        .order("full_name", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -69,7 +75,13 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
   const { data: properties = [] } = useQuery({
     queryKey: ["properties"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("properties").select("id, title");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id, title")
+        .eq("user_id", user.id)
+        .order("title", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -81,7 +93,6 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
         lead_name: lead.lead_name || "",
         lead_email: lead.lead_email || "",
         lead_phone: lead.lead_phone || "",
-        client_id: lead.client_id || "",
         property_id: lead.property_id || "",
         status: lead.status || "new",
         source: lead.source || "",
@@ -127,6 +138,9 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{lead ? "Edit Lead" : "Add New Lead"}</DialogTitle>
+          <DialogDescription>
+            {lead ? "Update lead information" : "Add a new lead to track"}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -172,30 +186,6 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
               />
               <FormField
                 control={form.control}
-                name="client_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select client" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.map((client: any) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="property_id"
                 render={({ field }) => (
                   <FormItem>
@@ -207,6 +197,7 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         {properties.map((property: any) => (
                           <SelectItem key={property.id} value={property.id}>
                             {property.title}
@@ -256,12 +247,13 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="website">Website</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="advertisement">Advertisement</SelectItem>
+                        <SelectItem value="email_campaign">Email Campaign</SelectItem>
                         <SelectItem value="referral">Referral</SelectItem>
                         <SelectItem value="social_media">Social Media</SelectItem>
-                        <SelectItem value="advertisement">Advertisement</SelectItem>
                         <SelectItem value="walk_in">Walk-in</SelectItem>
-                        <SelectItem value="email_campaign">Email Campaign</SelectItem>
+                        <SelectItem value="website">Website</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

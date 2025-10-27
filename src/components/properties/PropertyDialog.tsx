@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,6 +168,9 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{property ? "Edit Property" : "Add New Property"}</DialogTitle>
+          <DialogDescription>
+            {property ? "Update property details" : "Add a new property to your listings"}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -248,19 +252,20 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
 
             <div className="space-y-2">
               <Label htmlFor="facing">Facing</Label>
-              <Select name="facing" defaultValue={property?.facing || ""}>
+              <Select name="facing" defaultValue={property?.facing || undefined}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select facing" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="north">North</SelectItem>
-                  <SelectItem value="south">South</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="east">East</SelectItem>
-                  <SelectItem value="west">West</SelectItem>
+                  <SelectItem value="north">North</SelectItem>
                   <SelectItem value="north_east">North-East</SelectItem>
                   <SelectItem value="north_west">North-West</SelectItem>
+                  <SelectItem value="south">South</SelectItem>
                   <SelectItem value="south_east">South-East</SelectItem>
                   <SelectItem value="south_west">South-West</SelectItem>
+                  <SelectItem value="west">West</SelectItem>
                 </SelectContent>
               </Select>
             </div>

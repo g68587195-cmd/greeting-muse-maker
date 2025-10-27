@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { User } from "lucide-react";
+import { User, Upload, X } from "lucide-react";
 
 export default function Profile() {
   const queryClient = useQueryClient();
@@ -20,6 +20,8 @@ export default function Profile() {
   const [companyEmail, setCompanyEmail] = useState("");
   const [companyGstin, setCompanyGstin] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
+  const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
+  const [companyLogoPreview, setCompanyLogoPreview] = useState<string>("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -57,12 +59,57 @@ export default function Profile() {
       setCompanyEmail(profile.company_email || "");
       setCompanyGstin(profile.company_gstin || "");
       setCompanyWebsite(profile.company_website || "");
+      setCompanyLogoPreview(profile.company_logo_url || "");
     }
   }, [profile]);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Logo must be less than 3MB");
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    setCompanyLogoFile(file);
+    setCompanyLogoPreview(URL.createObjectURL(file));
+  };
+
+  const removeLogo = () => {
+    setCompanyLogoFile(null);
+    setCompanyLogoPreview("");
+  };
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
+      
+      let logoUrl = profile?.company_logo_url;
+      
+      // Upload logo if new file selected
+      if (companyLogoFile) {
+        const fileExt = companyLogoFile.name.split('.').pop();
+        const fileName = `${user.id}/logo.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('property-images')
+          .upload(fileName, companyLogoFile, { upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('property-images')
+          .getPublicUrl(fileName);
+        
+        logoUrl = publicUrl;
+      }
+      
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -75,6 +122,7 @@ export default function Profile() {
           company_email: companyEmail,
           company_gstin: companyGstin,
           company_website: companyWebsite,
+          company_logo_url: logoUrl,
         })
         .eq("id", user.id);
       if (error) throw error;
@@ -229,7 +277,7 @@ export default function Profile() {
                 />
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <Label htmlFor="companyGstin">GSTIN</Label>
                 <Input
@@ -247,6 +295,41 @@ export default function Profile() {
                   onChange={(e) => setCompanyWebsite(e.target.value)}
                   placeholder="Enter website URL"
                 />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="companyLogo">Company Logo (Max 3MB)</Label>
+              <div className="mt-2 space-y-4">
+                {companyLogoPreview && (
+                  <div className="relative inline-block">
+                    <img src={companyLogoPreview} alt="Company Logo" className="h-24 w-24 object-contain border rounded" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={removeLogo}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <Label htmlFor="logo-upload" className="flex items-center gap-2 cursor-pointer px-4 py-2 border rounded-md hover:bg-accent">
+                    <Upload className="h-4 w-4" />
+                    Choose Logo
+                  </Label>
+                  <span className="text-sm text-muted-foreground">
+                    {companyLogoFile ? companyLogoFile.name : "No file selected"}
+                  </span>
+                </div>
               </div>
             </div>
             <Button type="submit" disabled={updateMutation.isPending}>

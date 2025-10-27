@@ -3,6 +3,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Building2, User, Calendar, Tag } from "lucide-react";
@@ -38,7 +39,10 @@ export function LeadDetailModal({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Lead Details</DialogTitle>
+            <div>
+              <DialogTitle>Lead Details</DialogTitle>
+              <DialogDescription>View and manage lead information</DialogDescription>
+            </div>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => onEdit(lead)}>
                 <Edit className="h-4 w-4" />
@@ -64,17 +68,17 @@ export function LeadDetailModal({
           <Separator />
 
           <div className="grid grid-cols-1 gap-4">
-            {lead.clients && (
+            {(lead.lead_name || lead.lead_email || lead.lead_phone) && (
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Client</p>
-                  <p className="font-medium">{lead.clients.full_name}</p>
-                  {lead.clients.email && (
-                    <p className="text-sm text-muted-foreground">{lead.clients.email}</p>
+                  <p className="text-sm text-muted-foreground">Contact</p>
+                  {lead.lead_name && <p className="font-medium">{lead.lead_name}</p>}
+                  {lead.lead_email && (
+                    <p className="text-sm text-muted-foreground">{lead.lead_email}</p>
                   )}
-                  {lead.clients.phone && (
-                    <p className="text-sm text-muted-foreground">{lead.clients.phone}</p>
+                  {lead.lead_phone && (
+                    <p className="text-sm text-muted-foreground">{lead.lead_phone}</p>
                   )}
                 </div>
               </div>

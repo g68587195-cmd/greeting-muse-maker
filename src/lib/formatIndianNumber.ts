@@ -1,23 +1,22 @@
-// Format numbers in Indian number system with commas
+// Format numbers in Indian number system with commas (lakhs and crores)
 export function formatIndianNumber(num: number | string | null | undefined): string {
-  if (num === null || num === undefined) return "0";
+  if (num === null || num === undefined || num === "") return "0";
   
-  const numStr = typeof num === 'string' ? num : num.toString();
-  const [integerPart, decimalPart] = numStr.split('.');
+  const numValue = typeof num === 'string' ? parseFloat(num.replace(/,/g, '')) : num;
+  if (isNaN(numValue)) return "0";
   
-  // Remove any existing commas
-  const cleanInteger = integerPart.replace(/,/g, '');
+  const [integerPart, decimalPart] = numValue.toString().split('.');
   
   // Indian number system: Last 3 digits, then groups of 2
   let result = '';
-  const len = cleanInteger.length;
+  const len = integerPart.length;
   
   if (len <= 3) {
-    result = cleanInteger;
+    result = integerPart;
   } else {
     // Last 3 digits
-    result = cleanInteger.slice(-3);
-    let remaining = cleanInteger.slice(0, -3);
+    result = integerPart.slice(-3);
+    let remaining = integerPart.slice(0, -3);
     
     // Groups of 2 from right to left
     while (remaining.length > 0) {

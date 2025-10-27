@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Download, Save } from "lucide-react";
+import { Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 interface QuotationDialogProps {
   open: boolean;
@@ -23,12 +24,15 @@ interface QuotationItem {
   description: string;
   quantity: number;
   rate: number;
+  tax_rate: number;
   amount: number;
 }
 
 export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: QuotationDialogProps) {
   const [clientId, setClientId] = useState("");
-  const [items, setItems] = useState<QuotationItem[]>([{ id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, amount: 0 }]);
+  const [items, setItems] = useState<QuotationItem[]>([
+    { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, tax_rate: 18, amount: 0 }
+  ]);
   const [sgstRate, setSgstRate] = useState("9");
   const [cgstRate, setCgstRate] = useState("9");
   const queryClient = useQueryClient();
@@ -36,7 +40,13 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, full_name, email, phone");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, full_name, email, phone")
+        .eq("user_id", user.id)
+        .order("full_name", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -54,7 +64,7 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
   });
 
   const addItem = () => {
-    setItems([...items, { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, amount: 0 }]);
+    setItems([...items, { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, tax_rate: 18, amount: 0 }]);
   };
 
   const updateItem = (id: string, field: keyof QuotationItem, value: any) => {
@@ -71,12 +81,15 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
   };
 
   const removeItem = (id: string) => {
+    if (items.length === 1) return;
     setItems(items.filter(item => item.id !== id));
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const sgstAmount = (subtotal * parseFloat(sgstRate)) / 100;
-  const cgstAmount = (subtotal * parseFloat(cgstRate)) / 100;
+  
+  // Calculate SGST and CGST per item based on their individual tax rates
+  const sgstAmount = items.reduce((sum, item) => sum + (item.amount * item.tax_rate / 2 / 100), 0);
+  const cgstAmount = items.reduce((sum, item) => sum + (item.amount * item.tax_rate / 2 / 100), 0);
   const total = subtotal + sgstAmount + cgstAmount;
 
   const saveQuotationMutation = useMutation({
@@ -88,9 +101,9 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
         user_id: user.id,
         client_id: clientId || null,
         subtotal,
-        sgst_rate: parseFloat(sgstRate),
+        sgst_rate: 9, // Average rate for display
         sgst_amount: sgstAmount,
-        cgst_rate: parseFloat(cgstRate),
+        cgst_rate: 9, // Average rate for display
         cgst_amount: cgstAmount,
         total_amount: total,
         created_by: user.id,
@@ -113,6 +126,7 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
         rate: item.rate,
         amount: item.amount,
         display_order: index,
+        notes: `Tax Rate: ${item.tax_rate}%`,
       }));
 
       const { error: itemsError } = await supabase
@@ -143,6 +157,14 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPos = 20;
 
+    // Company Logo (if available)
+    if (profile.company_logo_url) {
+      // Note: For actual logo rendering, you'd need to convert the image to base64
+      doc.setFontSize(10);
+      doc.text("[Company Logo]", 20, yPos);
+      yPos += 10;
+    }
+
     // Company Header
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -164,12 +186,12 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
 
     // Quotation Title
     yPos += 15;
-    doc.setFontSize(16);
+    doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
     doc.text("QUOTATION", pageWidth / 2, yPos, { align: "center" });
 
-    // Client Info
-    yPos += 10;
+    // Client Info & Date
+    yPos += 12;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("Bill To:", 20, yPos);
@@ -189,67 +211,105 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
       }
     }
 
-    // Date
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 20, yPos - 12, { align: "right" });
+    // Date and Quotation Number on right
+    const rightX = pageWidth - 20;
+    doc.setFont("helvetica", "bold");
+    doc.text("Date:", rightX - 40, yPos - 12);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date().toLocaleDateString(), rightX, yPos - 12, { align: "right" });
+    
     if (quotationData?.quotation_number) {
-      doc.text(`Quotation #: ${quotationData.quotation_number}`, pageWidth - 20, yPos - 6, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.text("Quotation #:", rightX - 40, yPos - 6);
+      doc.setFont("helvetica", "normal");
+      doc.text(quotationData.quotation_number, rightX, yPos - 6, { align: "right" });
     }
 
     // Items Table
     yPos += 15;
-    doc.setFont("helvetica", "bold");
-    doc.text("Description", 20, yPos);
-    doc.text("Qty", 120, yPos, { align: "right" });
-    doc.text("Rate", 145, yPos, { align: "right" });
-    doc.text("Amount", 180, yPos, { align: "right" });
     
-    yPos += 2;
+    // Table Header with borders
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, yPos - 5, pageWidth - 40, 8, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("Sr.", 22, yPos);
+    doc.text("Description", 35, yPos);
+    doc.text("Qty", 115, yPos, { align: "right" });
+    doc.text("Rate", 135, yPos, { align: "right" });
+    doc.text("Tax%", 155, yPos, { align: "right" });
+    doc.text("Amount", 185, yPos, { align: "right" });
+    
+    yPos += 5;
+    doc.setLineWidth(0.5);
     doc.line(20, yPos, pageWidth - 20, yPos);
     yPos += 6;
 
     doc.setFont("helvetica", "normal");
-    items.forEach(item => {
+    doc.setFontSize(9);
+    items.forEach((item, index) => {
       if (yPos > 250) {
         doc.addPage();
         yPos = 20;
       }
-      doc.text(item.description || "-", 20, yPos);
-      doc.text(item.quantity.toString(), 120, yPos, { align: "right" });
-      doc.text(`₹${item.rate.toFixed(2)}`, 145, yPos, { align: "right" });
-      doc.text(`₹${item.amount.toFixed(2)}`, 180, yPos, { align: "right" });
+      
+      doc.text(`${index + 1}`, 22, yPos);
+      doc.text(item.description || "-", 35, yPos);
+      doc.text(item.quantity.toString(), 115, yPos, { align: "right" });
+      doc.text(`₹${formatIndianNumber(item.rate)}`, 135, yPos, { align: "right" });
+      doc.text(`${item.tax_rate}%`, 155, yPos, { align: "right" });
+      doc.text(`₹${formatIndianNumber(item.amount)}`, 185, yPos, { align: "right" });
       yPos += 7;
     });
 
-    // Totals
+    // Totals Section
     yPos += 5;
-    doc.line(120, yPos, pageWidth - 20, yPos);
+    doc.setLineWidth(0.5);
+    doc.line(110, yPos, pageWidth - 20, yPos);
     yPos += 8;
     
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
     doc.text("Subtotal:", 120, yPos);
-    doc.text(`₹${subtotal.toFixed(2)}`, 180, yPos, { align: "right" });
+    doc.text(`₹${formatIndianNumber(subtotal)}`, 185, yPos, { align: "right" });
     
     yPos += 7;
-    doc.text(`SGST (${sgstRate}%):`, 120, yPos);
-    doc.text(`₹${sgstAmount.toFixed(2)}`, 180, yPos, { align: "right" });
+    doc.text("SGST:", 120, yPos);
+    doc.text(`₹${formatIndianNumber(sgstAmount)}`, 185, yPos, { align: "right" });
     
     yPos += 7;
-    doc.text(`CGST (${cgstRate}%):`, 120, yPos);
-    doc.text(`₹${cgstAmount.toFixed(2)}`, 180, yPos, { align: "right" });
+    doc.text("CGST:", 120, yPos);
+    doc.text(`₹${formatIndianNumber(cgstAmount)}`, 185, yPos, { align: "right" });
     
     yPos += 5;
-    doc.line(120, yPos, pageWidth - 20, yPos);
-    yPos += 8;
+    doc.setLineWidth(0.7);
+    doc.line(110, yPos, pageWidth - 20, yPos);
+    yPos += 9;
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("Total:", 120, yPos);
-    doc.text(`₹${total.toFixed(2)}`, 180, yPos, { align: "right" });
+    doc.text(`₹${formatIndianNumber(total)}`, 185, yPos, { align: "right" });
 
     // Footer
-    yPos += 20;
+    yPos = doc.internal.pageSize.getHeight() - 30;
     doc.setFontSize(9);
     doc.setFont("helvetica", "italic");
     doc.text("Thank you for your business!", pageWidth / 2, yPos, { align: "center" });
+    
+    // Signature section
+    yPos += 10;
+    doc.setFont("helvetica", "normal");
+    doc.text("For " + (profile.company_name || "Company"), 20, yPos);
+    doc.text("Customer Signature", pageWidth - 60, yPos);
+    
+    yPos += 15;
+    doc.line(20, yPos, 70, yPos);
+    doc.line(pageWidth - 60, yPos, pageWidth - 20, yPos);
+    
+    yPos += 5;
+    doc.text("Authorized Signatory", 20, yPos);
+    doc.text("Date:", pageWidth - 60, yPos);
 
     doc.save(`Quotation_${quotationData?.quotation_number || new Date().getTime()}.pdf`);
     toast.success("PDF downloaded successfully");
@@ -269,98 +329,144 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Quotation</DialogTitle>
+          <DialogTitle className="text-2xl">Create Quotation</DialogTitle>
+          <DialogDescription>Generate a professional quotation for your client</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="bg-card p-4 rounded-lg border">
-            <h3 className="font-semibold mb-2">From:</h3>
-            <p className="font-bold">{profile?.company_name || "Company Name"}</p>
-            {profile?.company_address && <p className="text-sm">{profile.company_address}</p>}
-            {profile?.company_phone && <p className="text-sm">{profile.company_phone}</p>}
-            {profile?.company_email && <p className="text-sm text-muted-foreground">{profile.company_email}</p>}
-            {profile?.company_gstin && <p className="text-sm">GSTIN: {profile.company_gstin}</p>}
-          </div>
-
-          <div>
-            <Label>Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client: any) => (
-                  <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold">Items</h3>
-              <Button onClick={addItem} size="sm"><Plus className="h-4 w-4 mr-1" />Add Item</Button>
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-6 rounded-lg border border-primary/20">
+            <h3 className="font-semibold text-lg mb-3">From:</h3>
+            <div className="space-y-1">
+              <p className="font-bold text-lg">{profile?.company_name || "Company Name"}</p>
+              {profile?.company_address && <p className="text-sm text-muted-foreground">{profile.company_address}</p>}
+              <div className="flex gap-4 text-sm">
+                {profile?.company_phone && <p>📞 {profile.company_phone}</p>}
+                {profile?.company_email && <p className="text-muted-foreground">✉️ {profile.company_email}</p>}
+              </div>
+              {profile?.company_gstin && <p className="text-sm font-medium mt-2">GSTIN: {profile.company_gstin}</p>}
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%]">Description</TableHead>
-                  <TableHead className="w-[15%]">Qty</TableHead>
-                  <TableHead className="w-[20%]">Rate</TableHead>
-                  <TableHead className="w-[20%]">Amount</TableHead>
-                  <TableHead className="w-[5%]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} />
-                    </TableCell>
-                    <TableCell>
-                      <Input type="number" value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", parseFloat(e.target.value) || 0)} />
-                    </TableCell>
-                    <TableCell>
-                      <Input type="number" value={item.rate} onChange={(e) => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)} />
-                    </TableCell>
-                    <TableCell>₹{item.amount.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <Label className="text-base font-semibold">Client *</Label>
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client: any) => (
+                    <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-6 bg-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">Items</h3>
+              <Button onClick={addItem} size="sm" variant="outline"><Plus className="h-4 w-4 mr-1" />Add Item</Button>
+            </div>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[35%] font-semibold">Description</TableHead>
+                    <TableHead className="w-[12%] font-semibold">Qty</TableHead>
+                    <TableHead className="w-[15%] font-semibold">Rate (₹)</TableHead>
+                    <TableHead className="w-[12%] font-semibold">Tax %</TableHead>
+                    <TableHead className="w-[18%] font-semibold text-right">Amount (₹)</TableHead>
+                    <TableHead className="w-[8%]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item, idx) => (
+                    <TableRow key={item.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <TableCell className="p-2">
+                        <Input 
+                          value={item.description} 
+                          onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                          placeholder="Item description"
+                          className="border-0 focus-visible:ring-1"
+                        />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => updateItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                          className="border-0 focus-visible:ring-1"
+                          min="0"
+                        />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input 
+                          type="number" 
+                          value={item.rate} 
+                          onChange={(e) => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                          className="border-0 focus-visible:ring-1"
+                          min="0"
+                          step="0.01"
+                        />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input 
+                          type="number" 
+                          value={item.tax_rate} 
+                          onChange={(e) => updateItem(item.id, "tax_rate", parseFloat(e.target.value) || 0)}
+                          className="border-0 focus-visible:ring-1"
+                          min="0"
+                          max="100"
+                        />
+                      </TableCell>
+                      <TableCell className="p-2 text-right font-medium">
+                        {formatIndianNumber(item.amount)}
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => removeItem(item.id)} 
+                          disabled={items.length === 1}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-end gap-8 text-sm">
-              <span className="font-medium">Subtotal:</span>
-              <span>₹{subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-end gap-8 text-sm items-center">
-              <span className="font-medium">SGST:</span>
-              <Input type="number" value={sgstRate} onChange={(e) => setSgstRate(e.target.value)} className="w-20" />
-              <span>₹{sgstAmount.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-end gap-8 text-sm items-center">
-              <span className="font-medium">CGST:</span>
-              <Input type="number" value={cgstRate} onChange={(e) => setCgstRate(e.target.value)} className="w-20" />
-              <span>₹{cgstAmount.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-end gap-8 text-lg font-bold border-t pt-2">
-              <span>Total:</span>
-              <span>₹{total.toLocaleString()}</span>
+          <div className="border rounded-lg p-6 bg-gradient-to-br from-background to-muted/20">
+            <div className="space-y-3">
+              <div className="flex justify-between text-base border-b pb-2">
+                <span className="font-medium">Subtotal:</span>
+                <span className="font-mono">₹{formatIndianNumber(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>SGST (Split by item tax rates):</span>
+                <span className="font-mono">₹{formatIndianNumber(sgstAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground border-b pb-3">
+                <span>CGST (Split by item tax rates):</span>
+                <span className="font-mono">₹{formatIndianNumber(cgstAmount)}</span>
+              </div>
+              <div className="flex justify-between text-xl font-bold pt-2">
+                <span>Total:</span>
+                <span className="font-mono text-primary">₹{formatIndianNumber(total)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handleSaveAndDownload} disabled={saveQuotationMutation.isPending}>
+          <div className="flex gap-3 justify-end pt-4 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSaveAndDownload} disabled={saveQuotationMutation.isPending} size="lg">
               {saveQuotationMutation.isPending ? "Saving..." : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
