@@ -12,9 +12,17 @@ export function SiteProgressDialog({ open, onOpenChange, site, onSuccess }: any)
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
+    const dataToSave = site ? formData : { ...formData, user_id: user.id };
+
     const { error } = site
-      ? await supabase.from("site_progress").update(formData).eq("id", site.id)
-      : await supabase.from("site_progress").insert([formData]);
+      ? await supabase.from("site_progress").update(dataToSave).eq("id", site.id)
+      : await supabase.from("site_progress").insert([dataToSave]);
     if (error) return toast.error(error.message);
     toast.success(site ? "Updated" : "Created");
     onSuccess();

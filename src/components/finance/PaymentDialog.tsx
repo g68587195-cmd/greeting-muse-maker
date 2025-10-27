@@ -63,6 +63,12 @@ export function PaymentDialog({ open, onOpenChange, payment, onSuccess }: Paymen
   }, [payment, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const paymentData: any = {
       client_id: values.client_id,
       amount: parseFloat(values.amount),
@@ -73,6 +79,10 @@ export function PaymentDialog({ open, onOpenChange, payment, onSuccess }: Paymen
       reference_number: values.reference_number || null,
       notes: values.notes,
     };
+
+    if (!payment) {
+      paymentData.user_id = user.id;
+    }
 
     const { error } = payment
       ? await supabase.from("payments").update(paymentData).eq("id", payment.id)

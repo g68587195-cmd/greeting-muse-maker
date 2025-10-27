@@ -33,9 +33,17 @@ export function TenantDialog({ open, onOpenChange, tenant, onSuccess }: any) {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
+    const dataToSave = tenant ? formData : { ...formData, user_id: user.id };
+
     const { error } = tenant
-      ? await supabase.from("tenant_management").update(formData).eq("id", tenant.id)
-      : await supabase.from("tenant_management").insert([formData]);
+      ? await supabase.from("tenant_management").update(dataToSave).eq("id", tenant.id)
+      : await supabase.from("tenant_management").insert([dataToSave]);
     if (error) return toast.error(error.message);
     toast.success(tenant ? "Updated" : "Created");
     onSuccess();

@@ -66,12 +66,22 @@ export function MaintenanceDialog({ open, onOpenChange, request, onSuccess }: Ma
   }, [request, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const data: any = {
       ...values,
       estimated_cost: values.estimated_cost ? parseFloat(values.estimated_cost) : null,
       actual_cost: values.actual_cost ? parseFloat(values.actual_cost) : null,
       scheduled_date: values.scheduled_date || null,
     };
+
+    if (!request) {
+      data.user_id = user.id;
+    }
 
     const { error } = request
       ? await supabase.from("maintenance_requests").update(data).eq("id", request.id)

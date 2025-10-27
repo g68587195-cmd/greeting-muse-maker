@@ -97,6 +97,12 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
   }, [sale, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const saleData: any = {
       client_id: values.client_id,
       property_id: values.property_id,
@@ -109,6 +115,10 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
       status: values.status,
       notes: values.notes,
     };
+
+    if (!sale) {
+      saleData.user_id = user.id;
+    }
 
     const { error } = sale
       ? await supabase.from("sales_transactions").update(saleData).eq("id", sale.id)

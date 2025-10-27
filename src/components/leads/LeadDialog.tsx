@@ -94,10 +94,21 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
   }, [lead, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const leadData: any = {
       ...values,
       status: values.status as any,
     };
+
+    if (!lead) {
+      leadData.user_id = user.id;
+    }
+
     const { error } = lead
       ? await supabase.from("leads").update(leadData).eq("id", lead.id)
       : await supabase.from("leads").insert([leadData]);

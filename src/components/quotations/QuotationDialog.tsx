@@ -85,6 +85,7 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
       if (!user) throw new Error("Not authenticated");
 
       const quotationData = {
+        user_id: user.id,
         client_id: clientId || null,
         subtotal,
         sgst_rate: parseFloat(sgstRate),

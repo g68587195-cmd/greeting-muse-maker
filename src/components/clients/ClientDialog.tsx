@@ -95,6 +95,12 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
   }, [client, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in");
+      return;
+    }
+
     const preferences = {
       occupation: values.occupation,
       annual_income: values.annual_income,
@@ -105,7 +111,7 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
       source: values.source,
     };
 
-    const clientData = {
+    const clientData: any = {
       full_name: values.full_name,
       email: values.email || null,
       phone: values.phone,
@@ -114,6 +120,10 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
       notes: values.notes || null,
       preferences,
     };
+
+    if (!client) {
+      clientData.user_id = user.id;
+    }
 
     const { error } = client
       ? await supabase.from("clients").update(clientData).eq("id", client.id)
