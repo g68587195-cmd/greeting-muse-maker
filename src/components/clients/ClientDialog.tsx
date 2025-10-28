@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -53,6 +53,9 @@ interface ClientDialogProps {
 }
 
 export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDialogProps) {
+  const [properties, setProperties] = useState<any[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<string>("");
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,6 +74,35 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
       notes: "",
     },
   });
+
+  const clientType = form.watch("client_type");
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !clientType) return;
+
+      let query = supabase
+        .from("properties")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("title");
+
+      // Filter based on client type
+      if (clientType === "seller") {
+        query = query.eq("status", "sold");
+      } else if (clientType === "tenant") {
+        query = query.or("status.eq.rented,category.eq.for_rent,category.eq.for_lease");
+      }
+
+      const { data } = await query;
+      setProperties(data || []);
+    };
+
+    if (open) {
+      fetchProperties();
+    }
+  }, [clientType, open]);
 
   useEffect(() => {
     if (client) {
@@ -310,6 +342,27 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
                 )}
               />
             </div>
+
+            {(clientType === "seller" || clientType === "tenant") && properties.length > 0 && (
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium">
+                  {clientType === "seller" ? "Properties Owned" : "Rented/Leased Properties"}
+                </label>
+                <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder={`Select ${clientType === "seller" ? "owned" : "rented"} property`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {properties.map((property) => (
+                      <SelectItem key={property.id} value={property.id}>
+                        {property.title} - ₹{property.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <FormField
               control={form.control}
               name="address"

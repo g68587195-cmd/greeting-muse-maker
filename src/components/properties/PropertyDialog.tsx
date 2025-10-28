@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Property } from "@/pages/Properties";
 import { Upload, X } from "lucide-react";
+import { NumberInput } from "@/components/ui/number-input";
 
 interface PropertyDialogProps {
   open: boolean;
@@ -73,7 +74,8 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const data: any = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
@@ -85,10 +87,10 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       state: formData.get("state") as string || null,
       zip_code: formData.get("zip_code") as string || null,
       country: formData.get("country") as string,
-      price: parseFloat(formData.get("price") as string),
+      price: parseFloat((formData.get("price") as string).replace(/,/g, '')),
       bedrooms: parseInt(formData.get("bedrooms") as string) || null,
       bathrooms: parseInt(formData.get("bathrooms") as string) || null,
-      square_feet: parseFloat(formData.get("square_feet") as string) || null,
+      square_feet: parseFloat((formData.get("square_feet") as string || '').replace(/,/g, '')) || null,
       year_built: parseInt(formData.get("year_built") as string) || null,
       area_cents: parseFloat(formData.get("area_cents") as string) || null,
       area_acres: parseFloat(formData.get("area_acres") as string) || null,
@@ -227,22 +229,22 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
 
             <div className="space-y-2">
               <Label htmlFor="price">Price (₹) *</Label>
-              <Input id="price" name="price" type="number" step="0.01" defaultValue={property?.price} required />
+              <NumberInput id="price" name="price" defaultValue={property?.price} required />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="area_cents">Area (Cents)</Label>
-              <Input id="area_cents" name="area_cents" type="number" step="0.01" defaultValue={property?.area_cents || ""} />
+              <NumberInput id="area_cents" name="area_cents" defaultValue={property?.area_cents || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="area_acres">Area (Acres)</Label>
-              <Input id="area_acres" name="area_acres" type="number" step="0.01" defaultValue={property?.area_acres || ""} />
+              <NumberInput id="area_acres" name="area_acres" defaultValue={property?.area_acres || ""} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="square_feet">Square Feet</Label>
-              <Input id="square_feet" name="square_feet" type="number" step="0.01" defaultValue={property?.square_feet || ""} />
+              <NumberInput id="square_feet" name="square_feet" defaultValue={property?.square_feet || ""} />
             </div>
 
             <div className="space-y-2">
@@ -272,7 +274,7 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
 
             <div className="space-y-2">
               <Label htmlFor="road_width_feet">Road Width (Feet)</Label>
-              <Input id="road_width_feet" name="road_width_feet" type="number" step="0.01" defaultValue={property?.road_width_feet || ""} />
+              <NumberInput id="road_width_feet" name="road_width_feet" defaultValue={property?.road_width_feet || ""} />
             </div>
 
             <div className="space-y-2">

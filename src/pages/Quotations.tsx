@@ -1,31 +1,75 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Eye, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QuotationDialog } from "@/components/quotations/QuotationDialog";
+import { QuotationViewerModal } from "@/components/quotations/QuotationViewerModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 export default function Quotations() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const fetchCompanyInfo = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("company_name, company_logo_url")
+        .eq("id", user.id)
+        .single();
+      
+      if (data) {
+        setCompanyInfo({
+          name: data.company_name || "Your Company",
+          logo: data.company_logo_url
+        });
+      }
+    };
+    fetchCompanyInfo();
+  }, []);
 
   const { data: quotations = [], isLoading } = useQuery({
     queryKey: ["quotations"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("quotations")
         .select(`
           *,
           clients(full_name, email, phone)
         `)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from("quotations")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      toast.success("Status updated");
     },
   });
 
@@ -54,46 +98,84 @@ export default function Quotations() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {quotations.map((quotation) => (
-            <Card key={quotation.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">{quotation.quotation_number}</CardTitle>
+            <Card key={quotation.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                    <CardTitle className="text-base md:text-lg truncate">{quotation.quotation_number}</CardTitle>
                   </div>
-                  <Badge className={getStatusColor(quotation.status)}>
-                    {quotation.status}
-                  </Badge>
+                  <Select
+                    value={quotation.status}
+                    onValueChange={(value) => updateStatusMutation.mutate({ id: quotation.id, status: value })}
+                  >
+                    <SelectTrigger className="w-[110px] h-8" onClick={(e) => e.stopPropagation()}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Client</p>
-                  <p className="font-medium">{quotation.clients?.full_name || "N/A"}</p>
+                  <p className="font-medium truncate">{quotation.clients?.full_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
-                  <p className="font-bold text-lg text-primary">₹{quotation.total_amount?.toLocaleString()}</p>
+                  <p className="font-bold text-lg text-primary">₹{formatIndianNumber(quotation.total_amount)}</p>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm flex-wrap gap-2">
                   <div>
                     <p className="text-muted-foreground">Date</p>
-                    <p>{format(new Date(quotation.quotation_date), "dd MMM yyyy")}</p>
+                    <p className="text-xs md:text-sm">{format(new Date(quotation.quotation_date), "dd MMM yyyy")}</p>
                   </div>
                   {quotation.valid_until && (
-                    <div>
+                    <div className="text-right">
                       <p className="text-muted-foreground">Valid Until</p>
-                      <p>{format(new Date(quotation.valid_until), "dd MMM yyyy")}</p>
+                      <p className="text-xs md:text-sm">{format(new Date(quotation.valid_until), "dd MMM yyyy")}</p>
                     </div>
                   )}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedQuotation(quotation);
+                      setViewerOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setSelectedQuotation(quotation);
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -103,7 +185,10 @@ export default function Quotations() {
 
       <QuotationDialog
         open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setSelectedQuotation(null);
+        }}
         quotation={selectedQuotation}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["quotations"] });
@@ -111,6 +196,15 @@ export default function Quotations() {
           setSelectedQuotation(null);
         }}
       />
+
+      {selectedQuotation && (
+        <QuotationViewerModal
+          open={viewerOpen}
+          onOpenChange={setViewerOpen}
+          quotation={selectedQuotation}
+          companyInfo={companyInfo}
+        />
+      )}
     </div>
   );
 }

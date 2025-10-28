@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, DollarSign } from "lucide-react";
+import { Plus, DollarSign, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PaymentDialog } from "@/components/finance/PaymentDialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 export default function Finance() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -51,6 +52,18 @@ export default function Finance() {
     },
   });
 
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("payments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["payment-stats"] });
+      toast.success("Payment deleted");
+    },
+  });
+
   const getStatusColor = (status: string) => {
     const colors: any = {
       paid: "bg-green-500",
@@ -74,13 +87,13 @@ export default function Finance() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground">Total Amount</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">₹{stats?.total.toLocaleString()}</p>
+            <p className="text-xl md:text-2xl font-bold">₹{formatIndianNumber(stats?.total || 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -88,7 +101,7 @@ export default function Finance() {
             <CardTitle className="text-sm text-muted-foreground">Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">₹{stats?.paid.toLocaleString()}</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">₹{formatIndianNumber(stats?.paid || 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -96,7 +109,7 @@ export default function Finance() {
             <CardTitle className="text-sm text-muted-foreground">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-yellow-600">₹{stats?.pending.toLocaleString()}</p>
+            <p className="text-xl md:text-2xl font-bold text-yellow-600">₹{formatIndianNumber(stats?.pending || 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -104,70 +117,74 @@ export default function Finance() {
             <CardTitle className="text-sm text-muted-foreground">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-600">₹{stats?.overdue.toLocaleString()}</p>
+            <p className="text-xl md:text-2xl font-bold text-red-600">₹{formatIndianNumber(stats?.overdue || 0)}</p>
           </CardContent>
         </Card>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {payments.map((payment) => (
             <Card key={payment.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">Payment</CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DollarSign className="h-5 w-5 text-primary flex-shrink-0" />
+                    <CardTitle className="text-base md:text-lg truncate">Payment</CardTitle>
                   </div>
-                  <Badge className={getStatusColor(payment.status)}>
-                    {payment.status}
-                  </Badge>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Badge className={getStatusColor(payment.status)}>
+                      {payment.status}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm("Are you sure you want to delete this payment?")) {
+                          deletePaymentMutation.mutate(payment.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
                   <p className="text-sm text-muted-foreground">Client</p>
-                  <p className="font-medium">{payment.clients?.full_name || "N/A"}</p>
+                  <p className="font-medium truncate">{payment.clients?.full_name || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
-                  <p className="font-bold text-lg text-primary">₹{payment.amount?.toLocaleString()}</p>
+                  <p className="font-bold text-lg text-primary">₹{formatIndianNumber(payment.amount)}</p>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm flex-wrap gap-2">
                   <div>
                     <p className="text-muted-foreground">Payment Date</p>
-                    <p>{format(new Date(payment.payment_date), "dd MMM yyyy")}</p>
+                    <p className="text-xs md:text-sm">{format(new Date(payment.payment_date), "dd MMM yyyy")}</p>
                   </div>
                   {payment.due_date && (
-                    <div>
+                    <div className="text-right">
                       <p className="text-muted-foreground">Due Date</p>
-                      <p>{format(new Date(payment.due_date), "dd MMM yyyy")}</p>
+                      <p className="text-xs md:text-sm">{format(new Date(payment.due_date), "dd MMM yyyy")}</p>
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => { setSelectedPayment(payment); setIsDialogOpen(true); }} className="flex-1">
-                    Edit
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={async () => {
-                    const { error } = await supabase.from("payments").delete().eq("id", payment.id);
-                    if (error) {
-                      toast.error("Error deleting payment");
-                    } else {
-                      toast.success("Payment deleted successfully");
-                      queryClient.invalidateQueries({ queryKey: ["payments"] });
-                      queryClient.invalidateQueries({ queryKey: ["payment-stats"] });
-                    }
-                  }}>
-                    Delete
-                  </Button>
-                </div>
+                {payment.payment_method && (
+                  <div className="text-sm">
+                    <p className="text-muted-foreground">Method</p>
+                    <p className="font-medium capitalize">{payment.payment_method.replace("_", " ")}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
