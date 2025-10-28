@@ -74,36 +74,52 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       return;
     }
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const data: any = {
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
-      property_type: formData.get("property_type"),
-      status: formData.get("status"),
-      category: formData.get("category") as string,
-      address: formData.get("address") as string,
-      city: formData.get("city") as string,
-      state: formData.get("state") as string || null,
-      zip_code: formData.get("zip_code") as string || null,
-      country: formData.get("country") as string,
-      price: parseFloat((formData.get("price") as string).replace(/,/g, '')),
-      bedrooms: parseInt(formData.get("bedrooms") as string) || null,
-      bathrooms: parseInt(formData.get("bathrooms") as string) || null,
-      square_feet: parseFloat((formData.get("square_feet") as string || '').replace(/,/g, '')) || null,
-      year_built: parseInt(formData.get("year_built") as string) || null,
-      area_cents: parseFloat(formData.get("area_cents") as string) || null,
-      area_acres: parseFloat(formData.get("area_acres") as string) || null,
-      dtcp_approved: formData.get("dtcp_approved") === "on",
-      facing: formData.get("facing") as string || null,
-      plot_dimensions: formData.get("plot_dimensions") as string || null,
-      road_width_feet: parseFloat(formData.get("road_width_feet") as string) || null,
-      corner_plot: formData.get("corner_plot") === "on",
-      electricity_available: formData.get("electricity_available") === "on",
-      water_source: formData.get("water_source") as string || null,
-      boundary_wall: formData.get("boundary_wall") === "on",
-      user_id: user.id,
-    };
+    try {
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+      
+      // Helper to safely parse numbers
+      const parseNumber = (val: string | null) => {
+        if (!val || val === '') return null;
+        const cleaned = val.replace(/,/g, '');
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? null : num;
+      };
+
+      const data: any = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        property_type: formData.get("property_type"),
+        status: formData.get("status"),
+        category: formData.get("category") as string,
+        address: formData.get("address") as string,
+        city: formData.get("city") as string,
+        state: formData.get("state") as string || null,
+        zip_code: formData.get("zip_code") as string || null,
+        country: formData.get("country") as string,
+        price: parseNumber(formData.get("price") as string),
+        bedrooms: parseInt(formData.get("bedrooms") as string) || null,
+        bathrooms: parseInt(formData.get("bathrooms") as string) || null,
+        square_feet: parseNumber(formData.get("square_feet") as string),
+        year_built: parseInt(formData.get("year_built") as string) || null,
+        area_cents: parseNumber(formData.get("area_cents") as string),
+        area_acres: parseNumber(formData.get("area_acres") as string),
+        dtcp_approved: formData.get("dtcp_approved") === "on",
+        facing: formData.get("facing") as string || null,
+        plot_dimensions: formData.get("plot_dimensions") as string || null,
+        road_width_feet: parseNumber(formData.get("road_width_feet") as string),
+        corner_plot: formData.get("corner_plot") === "on",
+        electricity_available: formData.get("electricity_available") === "on",
+        water_source: formData.get("water_source") as string || null,
+        boundary_wall: formData.get("boundary_wall") === "on",
+        user_id: user.id,
+      };
+
+      if (!data.price) {
+        toast.error("Price is required");
+        setLoading(false);
+        return;
+      }
 
     let result;
     let propertyId: string;
@@ -157,12 +173,17 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
       }
     }
 
-    setLoading(false);
-    toast.success(`Property ${property ? "updated" : "created"} successfully`);
-    onSuccess();
-    onOpenChange(false);
-    setImageFiles([]);
-    setImagePreviews([]);
+      setLoading(false);
+      toast.success(`Property ${property ? "updated" : "created"} successfully`);
+      onSuccess();
+      onOpenChange(false);
+      setImageFiles([]);
+      setImagePreviews([]);
+    } catch (error) {
+      console.error("Property submission error:", error);
+      toast.error("Error submitting property");
+      setLoading(false);
+    }
   };
 
   return (

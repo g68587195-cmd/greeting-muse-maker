@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, Home } from "lucide-react";
@@ -9,12 +9,25 @@ import { TenantDialog } from "@/components/tenant/TenantDialog";
 import { TenantDetailModal } from "@/components/tenant/TenantDetailModal";
 import { format } from "date-fns";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
+import { toast } from "sonner";
 
 export default function TenantManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tenant_management").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      toast.success("Tenant deleted successfully");
+      setDetailModalOpen(false);
+    },
+  });
 
   const { data: tenants = [], isLoading } = useQuery({
     queryKey: ["tenants"],
@@ -139,6 +152,7 @@ export default function TenantManagement() {
             setIsDialogOpen(true);
             setDetailModalOpen(false);
           }}
+          onDelete={(id) => deleteMutation.mutate(id)}
         />
       )}
     </div>

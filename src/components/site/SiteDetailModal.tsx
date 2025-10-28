@@ -17,9 +17,10 @@ interface SiteDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
+  onDelete: (id: string) => void;
 }
 
-export function SiteDetailModal({ site, open, onOpenChange, onEdit }: SiteDetailModalProps) {
+export function SiteDetailModal({ site, open, onOpenChange, onEdit, onDelete }: SiteDetailModalProps) {
   const [dailyUpdateForm, setDailyUpdateForm] = useState({
     update_date: "",
     work_completed: "",
@@ -107,7 +108,17 @@ export function SiteDetailModal({ site, open, onOpenChange, onEdit }: SiteDetail
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{site.project_name}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>{site.project_name}</DialogTitle>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={onEdit}>
+                Edit
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => onDelete(site.id)}>
+                Delete
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">

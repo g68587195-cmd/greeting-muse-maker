@@ -18,9 +18,10 @@ interface TenantDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
+  onDelete: (id: string) => void;
 }
 
-export function TenantDetailModal({ tenant, open, onOpenChange, onEdit }: TenantDetailModalProps) {
+export function TenantDetailModal({ tenant, open, onOpenChange, onEdit, onDelete }: TenantDetailModalProps) {
   const [paymentForm, setPaymentForm] = useState({
     payment_date: "",
     amount: "",
@@ -78,7 +79,17 @@ export function TenantDetailModal({ tenant, open, onOpenChange, onEdit }: Tenant
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tenant Details - {tenant.clients?.full_name}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Tenant Details - {tenant.clients?.full_name}</DialogTitle>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={onEdit}>
+                Edit
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => onDelete(tenant.id)}>
+                Delete
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">

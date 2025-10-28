@@ -65,7 +65,7 @@ export default function SiteProgress() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {sites.map((site) => (
-            <Card key={site.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedSite(site); setDetailModalOpen(true); }}>
+            <Card key={site.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href = `/site-progress/${site.id}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -120,18 +120,10 @@ export default function SiteProgress() {
           setSelectedSite(null);
         }}
       />
+    </div>
+  );
+}
 
-      {selectedSite && (
-        <SiteDetailModal
-          site={selectedSite}
-          open={detailModalOpen}
-          onOpenChange={setDetailModalOpen}
-          onEdit={() => {
-            setIsDialogOpen(true);
-            setDetailModalOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 }
