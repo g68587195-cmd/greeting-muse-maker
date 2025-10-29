@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,17 +7,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, DollarSign, Users, FileText, TrendingUp, AlertCircle, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Calendar, DollarSign, Users, TrendingUp, AlertCircle, Edit, Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
 import { SiteProgressDialog } from "@/components/site/SiteProgressDialog";
+import { MilestoneDialog } from "@/components/site/MilestoneDialog";
+import { DailyUpdateDialog } from "@/components/site/DailyUpdateDialog";
 
 export default function SiteProgressDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
+  const [isDailyUpdateDialogOpen, setIsDailyUpdateDialogOpen] = useState(false);
+  const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
+  const [selectedUpdate, setSelectedUpdate] = useState<any>(null);
 
   const { data: site, isLoading } = useQuery({
     queryKey: ["site", id],
@@ -77,6 +83,28 @@ export default function SiteProgressDetail() {
     },
   });
 
+  const deleteMilestoneMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const { error } = await supabase.from("site_milestones").delete().eq("id", milestoneId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-milestones", id] });
+      toast.success("Milestone deleted");
+    },
+  });
+
+  const deleteUpdateMutation = useMutation({
+    mutationFn: async (updateId: string) => {
+      const { error } = await supabase.from("site_daily_updates").delete().eq("id", updateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-daily-updates", id] });
+      toast.success("Update deleted");
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -130,7 +158,14 @@ export default function SiteProgressDetail() {
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
-          <Button variant="destructive" onClick={() => deleteMutation.mutate(site.id)}>
+          <Button 
+            variant="destructive" 
+            onClick={() => {
+              if (confirm("Are you sure you want to delete this project?")) {
+                deleteMutation.mutate(site.id);
+              }
+            }}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
           </Button>
@@ -206,15 +241,19 @@ export default function SiteProgressDetail() {
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="milestones">Milestones</TabsTrigger>
-          <TabsTrigger value="updates">Daily Updates</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
+          <TabsTrigger value="updates">Daily Updates ({dailyUpdates.length})</TabsTrigger>
           <TabsTrigger value="financial">Financial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Project Details</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Details
+              </Button>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -265,10 +304,20 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="milestones" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setSelectedMilestone(null);
+              setIsMilestoneDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Milestone
+            </Button>
+          </div>
+
           {milestones.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                No milestones added yet
+                No milestones added yet. Click "Add Milestone" to get started.
               </CardContent>
             </Card>
           ) : (
@@ -277,9 +326,32 @@ export default function SiteProgressDetail() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{milestone.milestone_name}</CardTitle>
-                    <Badge className={getStatusColor(milestone.status)}>
-                      {milestone.status?.replace("_", " ")}
-                    </Badge>
+                    <div className="flex gap-2">
+                      <Badge className={getStatusColor(milestone.status)}>
+                        {milestone.status?.replace("_", " ")}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedMilestone(milestone);
+                          setIsMilestoneDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm("Delete this milestone?")) {
+                            deleteMilestoneMutation.mutate(milestone.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -320,10 +392,20 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="updates" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setSelectedUpdate(null);
+              setIsDailyUpdateDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Daily Update
+            </Button>
+          </div>
+
           {dailyUpdates.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                No daily updates recorded yet
+                No daily updates recorded yet. Click "Add Daily Update" to get started.
               </CardContent>
             </Card>
           ) : (
@@ -334,9 +416,32 @@ export default function SiteProgressDetail() {
                     <CardTitle className="text-base">
                       {format(new Date(update.update_date), "MMMM dd, yyyy")}
                     </CardTitle>
-                    {update.progress_percentage && (
-                      <Badge variant="outline">{update.progress_percentage}% Progress</Badge>
-                    )}
+                    <div className="flex gap-2">
+                      {update.progress_percentage && (
+                        <Badge variant="outline">{update.progress_percentage}% Progress</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedUpdate(update);
+                          setIsDailyUpdateDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm("Delete this update?")) {
+                            deleteUpdateMutation.mutate(update.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -435,7 +540,7 @@ export default function SiteProgressDetail() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {milestone.budget_allocated > 0 
-                            ? `${((milestone.budget_spent / milestone.budget_allocated) * 100).toFixed(1)}%`
+                            ? `${((milestone.budget_spent / milestone.budget_allocated) * 100).toFixed(1)}%` 
                             : "0%"}
                         </p>
                       </div>
@@ -448,6 +553,7 @@ export default function SiteProgressDetail() {
         </TabsContent>
       </Tabs>
 
+      {/* Dialogs */}
       <SiteProgressDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
@@ -455,6 +561,30 @@ export default function SiteProgressDetail() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["site", id] });
           setIsEditDialogOpen(false);
+        }}
+      />
+
+      <MilestoneDialog
+        open={isMilestoneDialogOpen}
+        onOpenChange={setIsMilestoneDialogOpen}
+        siteProgressId={id!}
+        milestone={selectedMilestone}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["site-milestones", id] });
+          setIsMilestoneDialogOpen(false);
+          setSelectedMilestone(null);
+        }}
+      />
+
+      <DailyUpdateDialog
+        open={isDailyUpdateDialogOpen}
+        onOpenChange={setIsDailyUpdateDialogOpen}
+        siteProgressId={id!}
+        update={selectedUpdate}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["site-daily-updates", id] });
+          setIsDailyUpdateDialogOpen(false);
+          setSelectedUpdate(null);
         }}
       />
     </div>

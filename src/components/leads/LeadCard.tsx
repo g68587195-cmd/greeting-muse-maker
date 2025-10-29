@@ -51,9 +51,9 @@ export function LeadCard({ lead, onClick, onStatusChange }: LeadCardProps) {
       </CardHeader>
       <CardContent className="space-y-2">
         {lead.lead_name && (
-          <div className="flex items-center gap-2 text-sm">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{lead.lead_name}</span>
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-base font-bold">{lead.lead_name}</span>
           </div>
         )}
         {lead.lead_email && (

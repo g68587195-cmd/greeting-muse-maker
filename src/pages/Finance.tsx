@@ -131,7 +131,14 @@ export default function Finance() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {payments.map((payment) => (
-            <Card key={payment.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={payment.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => {
+                setSelectedPayment(payment);
+                setIsDialogOpen(true);
+              }}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, DollarSign, TrendingUp, Home, Wrench } from "lucide-react";
+import { Building2, Users, DollarSign, TrendingUp, Home, Wrench, FileText, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 interface Stats {
   totalProperties: number;
@@ -11,9 +12,11 @@ interface Stats {
   activeLeads: number;
   totalRevenue: number;
   pendingMaintenance: number;
+  totalQuotations: number;
+  activeSites: number;
 }
 
-const COLORS = ["hsl(195 85% 35%)", "hsl(38 95% 55%)", "hsl(142 76% 36%)", "hsl(0 84% 60%)"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--destructive))"];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({
@@ -23,54 +26,113 @@ export default function Dashboard() {
     activeLeads: 0,
     totalRevenue: 0,
     pendingMaintenance: 0,
+    totalQuotations: 0,
+    activeSites: 0,
   });
 
   const [propertyTypes, setPropertyTypes] = useState<any[]>([]);
+  const [leadStatus, setLeadStatus] = useState<any[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     // Fetch properties count
     const { count: totalProperties } = await supabase
       .from("properties")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
 
     const { count: availableProperties } = await supabase
       .from("properties")
       .select("*", { count: "exact", head: true })
-      .eq("status", "available");
+      .eq("status", "available")
+      .eq("user_id", user.id);
 
     // Fetch clients count
     const { count: totalClients } = await supabase
       .from("clients")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
 
     // Fetch active leads
     const { count: activeLeads } = await supabase
       .from("leads")
       .select("*", { count: "exact", head: true })
-      .in("status", ["new", "contacted", "qualified"]);
+      .in("status", ["new", "contacted", "qualified"])
+      .eq("user_id", user.id);
+
+    // Fetch all leads for status breakdown
+    const { data: allLeads } = await supabase
+      .from("leads")
+      .select("status")
+      .eq("user_id", user.id);
+
+    const leadStatusCount = allLeads?.reduce((acc: any, lead) => {
+      acc[lead.status] = (acc[lead.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const leadStatusData = Object.entries(leadStatusCount || {}).map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value,
+    }));
+
+    setLeadStatus(leadStatusData);
 
     // Fetch total revenue
     const { data: payments } = await supabase
       .from("payments")
-      .select("amount")
-      .eq("status", "paid");
+      .select("amount, payment_date")
+      .eq("status", "paid")
+      .eq("user_id", user.id);
 
     const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+
+    // Calculate monthly revenue for last 6 months
+    const monthlyData: any = {};
+    payments?.forEach(payment => {
+      const month = new Date(payment.payment_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      monthlyData[month] = (monthlyData[month] || 0) + Number(payment.amount);
+    });
+
+    const monthlyRevenueData = Object.entries(monthlyData).map(([month, amount]) => ({
+      month,
+      amount: Number(amount),
+    })).slice(-6);
+
+    setMonthlyRevenue(monthlyRevenueData);
 
     // Fetch pending maintenance
     const { count: pendingMaintenance } = await supabase
       .from("maintenance_requests")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .eq("user_id", user.id);
+
+    // Fetch quotations count
+    const { count: totalQuotations } = await supabase
+      .from("quotations")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    // Fetch active sites
+    const { count: activeSites } = await supabase
+      .from("site_progress")
+      .select("*", { count: "exact", head: true })
+      .in("project_status", ["planning", "in_progress"])
+      .eq("user_id", user.id);
 
     // Fetch property types distribution
     const { data: properties } = await supabase
       .from("properties")
-      .select("property_type");
+      .select("property_type")
+      .eq("user_id", user.id);
 
     const typesCount = properties?.reduce((acc: any, prop) => {
       acc[prop.property_type] = (acc[prop.property_type] || 0) + 1;
@@ -90,6 +152,8 @@ export default function Dashboard() {
       activeLeads: activeLeads || 0,
       totalRevenue,
       pendingMaintenance: pendingMaintenance || 0,
+      totalQuotations: totalQuotations || 0,
+      activeSites: activeSites || 0,
     });
   };
 
@@ -105,36 +169,50 @@ export default function Dashboard() {
       title: "Available Properties",
       value: stats.availableProperties,
       icon: Home,
-      color: "text-success",
-      bgColor: "bg-success/10",
+      color: "text-green-600",
+      bgColor: "bg-green-100",
     },
     {
       title: "Total Clients",
       value: stats.totalClients,
       icon: Users,
-      color: "text-accent",
-      bgColor: "bg-accent/10",
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
     },
     {
       title: "Active Leads",
       value: stats.activeLeads,
       icon: TrendingUp,
-      color: "text-warning",
-      bgColor: "bg-warning/10",
+      color: "text-orange-600",
+      bgColor: "bg-orange-100",
     },
     {
       title: "Total Revenue",
-      value: `₹${stats.totalRevenue.toLocaleString()}`,
+      value: `₹${formatIndianNumber(stats.totalRevenue)}`,
       icon: DollarSign,
-      color: "text-success",
-      bgColor: "bg-success/10",
+      color: "text-green-600",
+      bgColor: "bg-green-100",
     },
     {
       title: "Pending Maintenance",
       value: stats.pendingMaintenance,
       icon: Wrench,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
+      color: "text-red-600",
+      bgColor: "bg-red-100",
+    },
+    {
+      title: "Total Quotations",
+      value: stats.totalQuotations,
+      icon: FileText,
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+    },
+    {
+      title: "Active Sites",
+      value: stats.activeSites,
+      icon: Calendar,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-100",
     },
   ];
 
@@ -142,10 +220,11 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to Eduvanca Realestates Management System</p>
+        <p className="text-muted-foreground">Welcome to Real Estate Management System</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <Card key={card.title} className="transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -157,39 +236,95 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{card.value}</div>
+              <div className="text-2xl font-bold">{card.value}</div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Charts Grid */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Property Types Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={propertyTypes}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => entry.name}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {propertyTypes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {propertyTypes.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={propertyTypes}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: ${entry.value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {propertyTypes.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No property data available
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Lead Status Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {leadStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={leadStatus}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No lead data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {monthlyRevenue.length > 0 && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={(value) => `₹${formatIndianNumber(value)}`} />
+                  <Tooltip formatter={(value: any) => `₹${formatIndianNumber(value)}`} />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    name="Revenue"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -201,13 +336,13 @@ export default function Dashboard() {
                 { name: "Properties", value: stats.totalProperties },
                 { name: "Clients", value: stats.totalClients },
                 { name: "Leads", value: stats.activeLeads },
-                { name: "Maintenance", value: stats.pendingMaintenance },
+                { name: "Sites", value: stats.activeSites },
               ]}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="hsl(195 85% 35%)" />
+                <Bar dataKey="value" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
