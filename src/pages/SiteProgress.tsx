@@ -123,7 +123,3 @@ export default function SiteProgress() {
     </div>
   );
 }
-
-    </div>
-  );
-}
