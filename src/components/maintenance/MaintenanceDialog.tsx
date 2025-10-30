@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NumberInput } from "@/components/ui/number-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -117,6 +118,20 @@ export function MaintenanceDialog({ open, onOpenChange, request, onSuccess }: Ma
             )} />
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="estimated_cost" render={({ field }) => (
+                <FormItem><FormLabel>Estimated Cost (₹)</FormLabel><FormControl><NumberInput {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="actual_cost" render={({ field }) => (
+                <FormItem><FormLabel>Actual Cost (₹)</FormLabel><FormControl><NumberInput {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+            </div>
+            <FormField control={form.control} name="scheduled_date" render={({ field }) => (
+              <FormItem><FormLabel>Scheduled Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="notes" render={({ field }) => (
+              <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="status" render={({ field }) => (

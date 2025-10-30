@@ -341,6 +341,37 @@ export default function Profile() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Quotation Preferences</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4">
+            <div>
+              <Label htmlFor="quotationSignature">Show Signature on Quotations</Label>
+              <div className="mt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" className="rounded" defaultChecked />
+                  <span className="text-sm">Include signature line in quotation PDFs</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="quotationStamp">Show Stamp on Quotations</Label>
+              <div className="mt-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" className="rounded" defaultChecked />
+                  <span className="text-sm">Include stamp placeholder in quotation PDFs</span>
+                </label>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              These settings control whether signature and stamp placeholders appear at the bottom of your quotation PDFs. Coming soon: Upload custom signature and stamp images.
+            </p>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Change Password</CardTitle>
         </CardHeader>
         <CardContent>

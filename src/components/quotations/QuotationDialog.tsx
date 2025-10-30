@@ -37,6 +37,38 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
   const [cgstRate, setCgstRate] = useState("9");
   const queryClient = useQueryClient();
 
+  // Load quotation data when editing
+  useEffect(() => {
+    if (quotation && open) {
+      setClientId(quotation.client_id || "");
+      // Fetch quotation items
+      const fetchItems = async () => {
+        const { data, error } = await supabase
+          .from("quotation_items")
+          .select("*")
+          .eq("quotation_id", quotation.id)
+          .order("display_order");
+        
+        if (!error && data) {
+          const loadedItems = data.map((item: any) => ({
+            id: item.id,
+            description: item.item_description,
+            quantity: item.quantity,
+            rate: item.rate,
+            tax_rate: item.notes?.includes("Tax Rate:") ? parseInt(item.notes.split(":")[1]) : 18,
+            amount: item.amount,
+          }));
+          setItems(loadedItems.length > 0 ? loadedItems : [{ id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, tax_rate: 18, amount: 0 }]);
+        }
+      };
+      fetchItems();
+    } else if (!quotation) {
+      // Reset for new quotation
+      setClientId("");
+      setItems([{ id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, tax_rate: 18, amount: 0 }]);
+    }
+  }, [quotation, open]);
+
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
@@ -101,24 +133,44 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
         user_id: user.id,
         client_id: clientId || null,
         subtotal,
-        sgst_rate: 9, // Average rate for display
+        sgst_rate: 9,
         sgst_amount: sgstAmount,
-        cgst_rate: 9, // Average rate for display
+        cgst_rate: 9,
         cgst_amount: cgstAmount,
         total_amount: total,
         created_by: user.id,
-        status: "draft",
-        quotation_number: "",
+        status: quotation?.status || "draft",
       };
 
-      const { data: quotationResult, error: quotationError } = await supabase
-        .from("quotations")
-        .insert([quotationData])
-        .select()
-        .single();
+      let quotationResult;
 
-      if (quotationError) throw quotationError;
+      if (quotation) {
+        // Update existing quotation
+        const { data, error: quotationError } = await supabase
+          .from("quotations")
+          .update(quotationData)
+          .eq("id", quotation.id)
+          .select()
+          .single();
 
+        if (quotationError) throw quotationError;
+        quotationResult = data;
+
+        // Delete old items
+        await supabase.from("quotation_items").delete().eq("quotation_id", quotation.id);
+      } else {
+        // Create new quotation
+        const { data, error: quotationError } = await supabase
+          .from("quotations")
+          .insert([{ ...quotationData, quotation_number: "" }])
+          .select()
+          .single();
+
+        if (quotationError) throw quotationError;
+        quotationResult = data;
+      }
+
+      // Insert items
       const itemsData = items.map((item, index) => ({
         quotation_id: quotationResult.id,
         item_description: item.description,
@@ -139,8 +191,10 @@ export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: Qu
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
-      toast.success("Quotation saved successfully");
+      toast.success(quotation ? "Quotation updated successfully" : "Quotation saved successfully");
       generatePDF(data);
+      onOpenChange(false);
+      onSuccess();
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to save quotation");

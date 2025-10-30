@@ -6,11 +6,13 @@ import { Plus, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MaintenanceDialog } from "@/components/maintenance/MaintenanceDialog";
+import { MaintenanceDetailModal } from "@/components/maintenance/MaintenanceDetailModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 export default function Maintenance() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const queryClient = useQueryClient();
 
@@ -49,6 +51,24 @@ export default function Maintenance() {
     return colors[priority] || "bg-gray-500";
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("maintenance_requests").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance"] });
+      toast.success("Request deleted successfully");
+      setIsDetailOpen(false);
+    },
+  });
+
+  const handleEdit = (request: any) => {
+    setSelectedRequest(request);
+    setIsDetailOpen(false);
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -71,7 +91,7 @@ export default function Maintenance() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {requests.map((request) => (
-            <Card key={request.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedRequest(request); setIsDialogOpen(true); }}>
+            <Card key={request.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setSelectedRequest(request); setIsDetailOpen(true); }}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -126,6 +146,16 @@ export default function Maintenance() {
           setSelectedRequest(null);
         }}
       />
+
+      {selectedRequest && (
+        <MaintenanceDetailModal
+          open={isDetailOpen}
+          onOpenChange={setIsDetailOpen}
+          request={selectedRequest}
+          onEdit={() => handleEdit(selectedRequest)}
+          onDelete={() => deleteMutation.mutate(selectedRequest.id)}
+        />
+      )}
     </div>
   );
 }
