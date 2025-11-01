@@ -35,6 +35,7 @@ const formSchema = z.object({
   property_id: z.string().min(1, "Property is required"),
   transaction_type: z.string(),
   sale_price: z.string().min(1, "Sale price is required"),
+  company_revenue: z.string().optional(),
   contract_date: z.string().optional(),
   closing_date: z.string().optional(),
   commission_rate: z.string().optional(),
@@ -84,6 +85,7 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
         property_id: sale.property_id || "",
         transaction_type: sale.transaction_type || "sale",
         sale_price: sale.sale_price?.toString() || "",
+        company_revenue: sale.company_revenue?.toString() || "",
         contract_date: sale.contract_date || "",
         closing_date: sale.closing_date || "",
         commission_rate: sale.commission_rate?.toString() || "",
@@ -108,6 +110,7 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
       property_id: values.property_id,
       transaction_type: values.transaction_type as any,
       sale_price: parseFloat(values.sale_price),
+      company_revenue: values.company_revenue ? parseFloat(values.company_revenue) : null,
       commission_rate: values.commission_rate ? parseFloat(values.commission_rate) : null,
       commission_amount: values.commission_amount ? parseFloat(values.commission_amount) : null,
       contract_date: values.contract_date || null,
@@ -241,6 +244,19 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
                     <FormLabel>Sale Price *</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} placeholder="Enter amount" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="company_revenue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Revenue</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} placeholder="Revenue from this sale" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -35,7 +35,7 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
             <Building2 className="h-16 w-16 text-muted-foreground" />
           </div>
         )}
-        <Badge className={`absolute right-2 top-2 ${statusColors[property.status]}`}>
+        <Badge className={`absolute right-2 top-2 shadow-md ${statusColors[property.status] || 'bg-muted text-muted-foreground'}`}>
           {property.status.replace("_", " ")}
         </Badge>
       </div>

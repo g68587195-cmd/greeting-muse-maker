@@ -41,9 +41,9 @@ export function PropertyDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <DialogTitle className="text-2xl pr-4">{property.title}</DialogTitle>
-            <div className="flex gap-2 flex-shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <DialogTitle className="text-2xl pr-4 flex-1">{property.title}</DialogTitle>
+            <div className="flex gap-3 flex-shrink-0">
               <Button variant="outline" size="icon" onClick={onEdit}>
                 <Edit className="h-4 w-4" />
               </Button>

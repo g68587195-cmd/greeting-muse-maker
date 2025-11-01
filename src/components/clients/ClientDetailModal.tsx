@@ -28,9 +28,9 @@ export function ClientDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Client Details</DialogTitle>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="flex-1">Client Details</DialogTitle>
+            <div className="flex gap-3 flex-shrink-0">
               <Button size="sm" variant="outline" onClick={() => onEdit(client)}>
                 <Edit className="h-4 w-4" />
               </Button>

@@ -2,16 +2,18 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, DollarSign, Trash2 } from "lucide-react";
+import { Plus, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PaymentDialog } from "@/components/finance/PaymentDialog";
+import { PaymentDetailModal } from "@/components/finance/PaymentDetailModal";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
 
 export default function Finance() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const queryClient = useQueryClient();
 
@@ -136,7 +138,7 @@ export default function Finance() {
               className="hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => {
                 setSelectedPayment(payment);
-                setIsDialogOpen(true);
+                setDetailModalOpen(true);
               }}
             >
               <CardHeader className="pb-3">
@@ -145,24 +147,9 @@ export default function Finance() {
                     <DollarSign className="h-5 w-5 text-primary flex-shrink-0" />
                     <CardTitle className="text-base md:text-lg truncate">Payment</CardTitle>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Badge className={getStatusColor(payment.status)}>
-                      {payment.status}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm("Are you sure you want to delete this payment?")) {
-                          deletePaymentMutation.mutate(payment.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  <Badge className={getStatusColor(payment.status)}>
+                    {payment.status}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -212,6 +199,23 @@ export default function Finance() {
           setSelectedPayment(null);
         }}
       />
+
+      {selectedPayment && (
+        <PaymentDetailModal
+          payment={selectedPayment}
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          onEdit={(payment) => {
+            setSelectedPayment(payment);
+            setIsDialogOpen(true);
+            setDetailModalOpen(false);
+          }}
+          onDelete={(id) => {
+            deletePaymentMutation.mutate(id);
+            setDetailModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

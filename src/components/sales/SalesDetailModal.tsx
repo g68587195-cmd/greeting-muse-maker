@@ -34,9 +34,9 @@ export function SalesDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Sale Details</DialogTitle>
-            <div className="flex gap-2">
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="flex-1">Sale Details</DialogTitle>
+            <div className="flex gap-3 flex-shrink-0">
               <Button size="sm" variant="outline" onClick={() => onEdit(sale)}>
                 <Edit className="h-4 w-4" />
               </Button>

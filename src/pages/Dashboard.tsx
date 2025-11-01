@@ -16,7 +16,7 @@ interface Stats {
   activeSites: number;
 }
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--destructive))"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(142 76% 46%)", "hsl(217 91% 60%)", "hsl(280 85% 60%)"];
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({
@@ -85,14 +85,28 @@ export default function Dashboard() {
 
     setLeadStatus(leadStatusData);
 
-    // Fetch total revenue
+    // Fetch total revenue from payments, sales, and tenant payments
     const { data: payments } = await supabase
       .from("payments")
       .select("amount, payment_date")
       .eq("status", "paid")
       .eq("user_id", user.id);
 
-    const totalRevenue = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    const { data: salesRevenue } = await supabase
+      .from("sales_transactions")
+      .select("sale_price, company_revenue, closing_date")
+      .eq("status", "completed")
+      .eq("user_id", user.id);
+
+    const { data: tenantPayments } = await supabase
+      .from("tenant_payment_logs")
+      .select("amount, payment_date, tenant_management_id")
+      .eq("tenant_management_id", user.id);
+
+    const paymentsTotal = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    const salesTotal = salesRevenue?.reduce((sum, s) => sum + Number(s.company_revenue || s.sale_price || 0), 0) || 0;
+    const tenantTotal = tenantPayments?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+    const totalRevenue = paymentsTotal + salesTotal + tenantTotal;
 
     // Calculate monthly revenue for last 6 months
     const monthlyData: any = {};
@@ -289,7 +303,7 @@ export default function Dashboard() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  <Bar dataKey="value" fill="hsl(var(--accent))" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -342,7 +356,7 @@ export default function Dashboard() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <Bar dataKey="value" fill="hsl(142 76% 46%)" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

@@ -24,167 +24,230 @@ export function QuotationViewerModal({
   const items = quotation.quotation_items || [];
   const subtotal = quotation.subtotal || 0;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     try {
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 20;
-      let yPos = margin;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      let yPos = margin + 5;
 
-      // Company Logo (left side with margin)
+      // Helper function to format numbers without prefix
+      const formatCurrency = (value: number) => {
+        return formatIndianNumber(value).replace(/^1/, '');
+      };
+
+      // Load and add company logo if available (RIGHT SIDE with margin)
       if (companyInfo?.company_logo_url) {
-        doc.setFontSize(8);
-        doc.text("[Logo]", margin, yPos);
-        yPos += 8;
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = companyInfo.company_logo_url;
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+          doc.addImage(img, 'PNG', pageWidth - margin - 35, margin + 5, 30, 12);
+        } catch (e) {
+          console.log('Logo load failed', e);
+        }
       }
 
-      // Company Header
-      doc.setFontSize(16);
+      // Company Details (LEFT SIDE with margin)
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(companyInfo?.company_name || "Company Name", margin, yPos);
       
       yPos += 6;
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      if (companyInfo?.company_address) {
-        doc.text(companyInfo.company_address, margin, yPos);
-        yPos += 5;
-      }
+      const addressLines = companyInfo?.company_address ? 
+        doc.splitTextToSize(companyInfo.company_address, 80) : [];
+      addressLines.forEach((line: string) => {
+        doc.text(line, margin, yPos);
+        yPos += 4;
+      });
+      
       if (companyInfo?.company_phone) {
         doc.text(`Phone: ${companyInfo.company_phone}`, margin, yPos);
-        yPos += 5;
+        yPos += 4;
       }
       if (companyInfo?.company_email) {
         doc.text(`Email: ${companyInfo.company_email}`, margin, yPos);
-        yPos += 5;
+        yPos += 4;
       }
       if (companyInfo?.company_gstin) {
         doc.text(`GSTIN: ${companyInfo.company_gstin}`, margin, yPos);
-        yPos += 5;
+        yPos += 4;
       }
 
       // Quotation Title
-      yPos += 10;
-      doc.setFontSize(18);
+      yPos = Math.max(yPos, margin + 30);
+      doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
-      doc.text("QUOTATION", pageWidth / 2, yPos, { align: "center" });
+      const titleY = yPos;
+      doc.text("QUOTATION", pageWidth / 2, titleY, { align: "center" });
 
-      // Client Info & Date
-      yPos += 10;
-      doc.setFontSize(10);
+      // Border around title
+      doc.setLineWidth(0.5);
+      doc.rect(margin, titleY - 6, pageWidth - 2*margin, 10);
+
+      // Bill To & Date Section
+      yPos = titleY + 12;
+      doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
-      doc.text("Bill To:", margin, yPos);
+      doc.text("Bill To:", margin + 2, yPos);
+      
+      // Date & Quotation Number (RIGHT SIDE)
+      doc.setFontSize(8);
+      doc.text("Date:", pageWidth - margin - 45, yPos);
+      doc.setFont("helvetica", "normal");
+      doc.text(format(new Date(quotation.quotation_date), "dd/MM/yyyy"), pageWidth - margin - 25, yPos);
       
       yPos += 5;
+      doc.setFont("helvetica", "bold");
+      doc.text("Quotation#:", pageWidth - margin - 45, yPos);
       doc.setFont("helvetica", "normal");
-      doc.text(quotation.clients?.full_name || "N/A", margin, yPos);
+      doc.text(quotation.quotation_number, pageWidth - margin - 25, yPos);
       
-      // Date on right side
-      doc.text("Date: " + format(new Date(quotation.quotation_date), "dd/MM/yyyy"), pageWidth - margin - 40, yPos - 5, { align: "right" });
-      doc.text("Quotation#: " + quotation.quotation_number, pageWidth - margin - 40, yPos, { align: "right" });
+      // Client Details
+      yPos -= 5;
+      yPos += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(quotation.clients?.full_name || "N/A", margin + 2, yPos + 5);
       
       if (quotation.clients?.email) {
-        yPos += 5;
-        doc.text(quotation.clients.email, margin, yPos);
+        doc.setFontSize(8);
+        doc.text(quotation.clients.email, margin + 2, yPos + 10);
       }
       if (quotation.clients?.phone) {
-        yPos += 5;
-        doc.text(quotation.clients.phone, margin, yPos);
+        doc.text(quotation.clients.phone, margin + 2, yPos + 14);
       }
 
-      // Items Table
-      yPos += 15;
+      // Items Table Header
+      yPos += 25;
+      doc.setLineWidth(0.3);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       
-      // Table header with proper borders
-      const colWidths = [10, 70, 25, 25, 20, 30];
-      let xPos = margin;
+      const colX = [margin, margin + 12, margin + 82, margin + 102, margin + 127, margin + 147];
+      const colWidths = [12, 70, 20, 25, 20, pageWidth - margin - 147];
+      const headerY = yPos;
       
-      doc.rect(margin, yPos - 5, pageWidth - 2*margin, 7); // Header box
-      doc.text("Sr.", xPos + 2, yPos);
-      xPos += colWidths[0];
-      doc.text("Description", xPos + 2, yPos);
-      xPos += colWidths[1];
-      doc.text("Qty", xPos + 2, yPos);
-      xPos += colWidths[2];
-      doc.text("Rate", xPos + 2, yPos);
-      xPos += colWidths[3];
-      doc.text("Tax%", xPos + 2, yPos);
-      xPos += colWidths[4];
-      doc.text("Amount", xPos + 2, yPos);
-
-      yPos += 7;
-      doc.setFont("helvetica", "normal");
-
-      items.forEach((item: any, index: number) => {
-        xPos = margin;
-        doc.rect(margin, yPos - 5, pageWidth - 2*margin, 7); // Row box
-        
-        doc.text(String(index + 1), xPos + 2, yPos);
-        xPos += colWidths[0];
-        doc.text(item.item_description.substring(0, 35), xPos + 2, yPos);
-        xPos += colWidths[1];
-        doc.text(String(item.quantity), xPos + 2, yPos);
-        xPos += colWidths[2];
-        doc.text(formatIndianNumber(item.rate), xPos + 2, yPos);
-        xPos += colWidths[3];
-        doc.text(String(item.tax_rate || 0), xPos + 2, yPos);
-        xPos += colWidths[4];
-        doc.text(formatIndianNumber(item.amount), xPos + 2, yPos);
-        
-        yPos += 7;
+      // Draw header background
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, headerY - 4, pageWidth - 2*margin, 7, 'FD');
+      
+      // Header text
+      doc.text("Sr.", colX[0] + 1, headerY);
+      doc.text("Description", colX[1] + 1, headerY);
+      doc.text("Qty", colX[2] + 1, headerY);
+      doc.text("Rate", colX[3] + 1, headerY);
+      doc.text("Tax%", colX[4] + 1, headerY);
+      doc.text("Amount", colX[5] + 1, headerY);
+      
+      // Draw vertical lines for header
+      colX.forEach((x, i) => {
+        if (i < colX.length - 1) {
+          doc.line(x + colWidths[i], headerY - 4, x + colWidths[i], headerY + 3);
+        }
       });
 
-      // Totals section
-      yPos += 5;
-      const totalsX = pageWidth - margin - 60;
+      yPos += 3;
+      doc.setFont("helvetica", "normal");
+
+      // Items Rows
+      items.forEach((item: any, index: number) => {
+        const rowY = yPos;
+        const rowHeight = 6;
+        
+        // Draw row border
+        doc.setLineWidth(0.2);
+        doc.rect(margin, rowY, pageWidth - 2*margin, rowHeight);
+        
+        // Row data
+        doc.text(String(index + 1), colX[0] + 1, rowY + 4);
+        
+        const descText = doc.splitTextToSize(item.item_description, colWidths[1] - 3);
+        doc.text(descText[0], colX[1] + 1, rowY + 4);
+        
+        doc.text(String(item.quantity), colX[2] + 1, rowY + 4);
+        doc.text(formatCurrency(Number(item.rate)), colX[3] + 1, rowY + 4);
+        doc.text("18%", colX[4] + 1, rowY + 4);
+        doc.text(formatCurrency(Number(item.amount)), colX[5] + 1, rowY + 4);
+        
+        // Vertical lines
+        colX.forEach((x, i) => {
+          if (i < colX.length - 1) {
+            doc.line(x + colWidths[i], rowY, x + colWidths[i], rowY + rowHeight);
+          }
+        });
+        
+        yPos += rowHeight;
+      });
+
+      // Totals Section
+      yPos += 8;
+      const totalsX = pageWidth - margin - 50;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
       
-      doc.text("Subtotal:", totalsX, yPos);
-      doc.text("₹" + formatIndianNumber(subtotal), totalsX + 30, yPos, { align: "right" });
+      doc.text("Subtotal:", totalsX - 20, yPos);
+      doc.text("₹" + formatCurrency(Number(subtotal)), totalsX + 15, yPos, { align: "right" });
       
       if (quotation.sgst_amount > 0) {
         yPos += 5;
-        doc.text(`SGST (${quotation.sgst_rate}%):`, totalsX, yPos);
-        doc.text("₹" + formatIndianNumber(quotation.sgst_amount), totalsX + 30, yPos, { align: "right" });
+        doc.text(`SGST (${quotation.sgst_rate}%):`, totalsX - 20, yPos);
+        doc.text("₹" + formatCurrency(Number(quotation.sgst_amount)), totalsX + 15, yPos, { align: "right" });
       }
       
       if (quotation.cgst_amount > 0) {
         yPos += 5;
-        doc.text(`CGST (${quotation.cgst_rate}%):`, totalsX, yPos);
-        doc.text("₹" + formatIndianNumber(quotation.cgst_amount), totalsX + 30, yPos, { align: "right" });
+        doc.text(`CGST (${quotation.cgst_rate}%):`, totalsX - 20, yPos);
+        doc.text("₹" + formatCurrency(Number(quotation.cgst_amount)), totalsX + 15, yPos, { align: "right" });
       }
       
-      yPos += 7;
+      yPos += 6;
+      doc.setLineWidth(0.5);
+      doc.line(totalsX - 25, yPos - 2, pageWidth - margin, yPos - 2);
+      
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text("Total:", totalsX, yPos);
-      doc.text("₹" + formatIndianNumber(quotation.total_amount), totalsX + 30, yPos, { align: "right" });
+      doc.text("Total:", totalsX - 20, yPos + 2);
+      doc.text("₹" + formatCurrency(Number(quotation.total_amount)), totalsX + 15, yPos + 2, { align: "right" });
 
       // Terms & Conditions
       if (quotation.terms_and_conditions) {
-        yPos += 15;
-        doc.setFontSize(10);
+        yPos += 12;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
         doc.text("Terms & Conditions:", margin, yPos);
         yPos += 5;
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
         const terms = doc.splitTextToSize(quotation.terms_and_conditions, pageWidth - 2*margin);
         doc.text(terms, margin, yPos);
-        yPos += terms.length * 4;
+        yPos += terms.length * 3.5;
       }
 
-      // Footer - Signature with spacing from bottom
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const footerY = pageHeight - 40; // 40 units from bottom
+      // Footer - Signature with proper spacing from bottom
+      const footerY = pageHeight - 35;
       
-      doc.setFontSize(8);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
       doc.text("Thank you for your business!", margin, footerY);
       
-      // Signature section
-      doc.text("Authorized Signature", pageWidth - margin - 50, footerY + 10);
-      doc.line(pageWidth - margin - 50, footerY + 15, pageWidth - margin, footerY + 15);
-      doc.text("Date: __________", pageWidth - margin - 50, footerY + 20);
+      // Get signature preference from profile settings (default to showing)
+      const showSignature = companyInfo?.show_quotation_signature !== false;
+      
+      if (showSignature) {
+        // Signature section on right with proper margin
+        doc.setFont("helvetica", "normal");
+        doc.text("For " + (companyInfo?.company_name || "Company"), pageWidth - margin - 45, footerY + 5);
+        doc.text("Authorized Signatory", pageWidth - margin - 45, footerY + 15);
+        doc.line(pageWidth - margin - 45, footerY + 17, pageWidth - margin - 5, footerY + 17);
+      }
 
       doc.save(`Quotation-${quotation.quotation_number}.pdf`);
       toast.success("PDF downloaded successfully");
@@ -211,20 +274,20 @@ export function QuotationViewerModal({
           {/* Header */}
           <div className="flex justify-between items-start pb-4 border-b-2 border-gray-300">
             <div className="space-y-2">
-              {companyInfo?.company_logo_url && (
-                <img src={companyInfo.company_logo_url} alt="Company Logo" className="h-16 mb-2 ml-4" />
-              )}
-              <h1 className="text-2xl font-bold text-primary ml-4">
+              <h1 className="text-2xl font-bold text-primary">
                 {companyInfo?.company_name || "Your Company"}
               </h1>
-              <div className="text-xs text-gray-600 ml-4 space-y-1">
+              <div className="text-xs text-gray-600 space-y-1">
                 {companyInfo?.company_address && <p>{companyInfo.company_address}</p>}
                 {companyInfo?.company_phone && <p>Phone: {companyInfo.company_phone}</p>}
                 {companyInfo?.company_email && <p>Email: {companyInfo.company_email}</p>}
                 {companyInfo?.company_gstin && <p>GSTIN: {companyInfo.company_gstin}</p>}
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right flex flex-col items-end gap-2">
+              {companyInfo?.company_logo_url && (
+                <img src={companyInfo.company_logo_url} alt="Logo" className="h-12 object-contain mr-2" />
+              )}
               <h2 className="text-3xl font-bold text-gray-800">QUOTATION</h2>
               <p className="text-sm text-gray-600 mt-1">#{quotation.quotation_number}</p>
               <p className="text-xs text-gray-500 mt-2">

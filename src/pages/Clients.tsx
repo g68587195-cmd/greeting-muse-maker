@@ -6,12 +6,14 @@ import { Plus } from "lucide-react";
 import { ClientCard } from "@/components/clients/ClientCard";
 import { ClientDialog } from "@/components/clients/ClientDialog";
 import { ClientDetailModal } from "@/components/clients/ClientDetailModal";
+import { SearchInput } from "@/components/ui/search-input";
 import { toast } from "sonner";
 
 export default function Clients() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const queryClient = useQueryClient();
 
   const { data: clients = [], isLoading } = useQuery({
@@ -25,6 +27,14 @@ export default function Clients() {
       return data;
     },
   });
+
+  const filteredClients = searchQuery
+    ? clients.filter(client =>
+        client.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.phone?.includes(searchQuery)
+      )
+    : clients;
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -40,7 +50,7 @@ export default function Clients() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Clients Management</h1>
           <p className="text-muted-foreground mt-1">Manage all client information and interactions</p>
@@ -51,6 +61,13 @@ export default function Clients() {
         </Button>
       </div>
 
+      <SearchInput 
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Search clients by name, email, or phone..."
+        className="max-w-md"
+      />
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -59,7 +76,7 @@ export default function Clients() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clients.map((client) => (
+          {filteredClients.map((client) => (
             <ClientCard
               key={client.id}
               client={client}

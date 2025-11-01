@@ -5,6 +5,7 @@ import { Plus, Building2 } from "lucide-react";
 import { PropertyDialog } from "@/components/properties/PropertyDialog";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyDetailModal } from "@/components/properties/PropertyDetailModal";
+import { SearchInput } from "@/components/ui/search-input";
 import { toast } from "sonner";
 
 export interface Property {
@@ -41,14 +42,29 @@ export interface Property {
 
 export default function Properties() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = properties.filter(property =>
+        property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        property.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        property.address.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredProperties(filtered);
+    } else {
+      setFilteredProperties(properties);
+    }
+  }, [searchQuery, properties]);
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -104,7 +120,7 @@ export default function Properties() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Properties</h1>
           <p className="text-muted-foreground">Manage your property listings</p>
@@ -115,11 +131,24 @@ export default function Properties() {
         </Button>
       </div>
 
+      <SearchInput 
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Search properties by title, city, or address..."
+        className="max-w-md"
+      />
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
         </div>
-      ) : properties.length === 0 ? (
+      ) : filteredProperties.length === 0 && searchQuery ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+          <Building2 className="mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-semibold">No properties found</h3>
+          <p className="mb-4 text-sm text-muted-foreground">Try adjusting your search</p>
+        </div>
+      ) : filteredProperties.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
           <Building2 className="mb-4 h-12 w-12 text-muted-foreground" />
           <h3 className="mb-2 text-lg font-semibold">No properties yet</h3>
@@ -130,8 +159,8 @@ export default function Properties() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {properties.map((property) => (
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredProperties.map((property) => (
             <PropertyCard
               key={property.id}
               property={property}

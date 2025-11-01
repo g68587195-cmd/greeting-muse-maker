@@ -656,6 +656,7 @@ export type Database = {
           closing_date: string | null
           commission_amount: number | null
           commission_rate: number | null
+          company_revenue: number | null
           contract_date: string | null
           created_at: string
           id: string
@@ -673,6 +674,7 @@ export type Database = {
           closing_date?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
+          company_revenue?: number | null
           contract_date?: string | null
           created_at?: string
           id?: string
@@ -690,6 +692,7 @@ export type Database = {
           closing_date?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
+          company_revenue?: number | null
           contract_date?: string | null
           created_at?: string
           id?: string

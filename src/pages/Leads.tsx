@@ -6,12 +6,14 @@ import { Plus } from "lucide-react";
 import { LeadCard } from "@/components/leads/LeadCard";
 import { LeadDialog } from "@/components/leads/LeadDialog";
 import { LeadDetailModal } from "@/components/leads/LeadDetailModal";
+import { SearchInput } from "@/components/ui/search-input";
 import { toast } from "sonner";
 
 export default function Leads() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const queryClient = useQueryClient();
 
   const { data: leads = [], isLoading } = useQuery({
@@ -29,6 +31,15 @@ export default function Leads() {
       return data;
     },
   });
+
+  const filteredLeads = searchQuery
+    ? leads.filter(lead =>
+        lead.lead_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.lead_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.lead_phone?.includes(searchQuery) ||
+        lead.clients?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : leads;
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -58,7 +69,7 @@ export default function Leads() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Leads Management</h1>
           <p className="text-muted-foreground mt-1">Track and convert leads to clients</p>
@@ -69,6 +80,13 @@ export default function Leads() {
         </Button>
       </div>
 
+      <SearchInput 
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Search leads by name, email, or phone..."
+        className="max-w-md"
+      />
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -77,7 +95,7 @@ export default function Leads() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {leads.map((lead) => (
+          {filteredLeads.map((lead) => (
             <LeadCard
               key={lead.id}
               lead={lead}
