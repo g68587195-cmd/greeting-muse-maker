@@ -721,77 +721,166 @@ export type Database = {
           },
         ]
       }
-      site_daily_updates: {
+      site_change_requests: {
         Row: {
+          approval_date: string | null
+          approval_notes: string | null
+          approval_status: string | null
+          approved_by: string | null
+          change_description: string
+          change_id: string | null
+          change_reason: string | null
+          change_title: string
           created_at: string | null
-          created_by: string | null
-          delays_encountered: string | null
-          equipment_used: string | null
+          documents: string[] | null
           id: string
-          labor_count: number | null
-          materials_used: string | null
-          next_day_plan: string | null
-          photos_uploaded: string[] | null
-          progress_percentage: number | null
-          safety_incidents: string | null
-          site_progress_id: string | null
-          supervisor_name: string | null
-          update_date: string
+          impact_on_cost: number | null
+          impact_on_design: string | null
+          impact_on_time: number | null
+          implementation_status: string | null
+          project_id: string | null
+          request_date: string
+          requested_by: string
           updated_at: string | null
-          weather_conditions: string | null
-          work_completed: string
         }
         Insert: {
+          approval_date?: string | null
+          approval_notes?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          change_description: string
+          change_id?: string | null
+          change_reason?: string | null
+          change_title: string
           created_at?: string | null
-          created_by?: string | null
-          delays_encountered?: string | null
-          equipment_used?: string | null
+          documents?: string[] | null
           id?: string
-          labor_count?: number | null
-          materials_used?: string | null
-          next_day_plan?: string | null
-          photos_uploaded?: string[] | null
-          progress_percentage?: number | null
-          safety_incidents?: string | null
-          site_progress_id?: string | null
-          supervisor_name?: string | null
-          update_date?: string
+          impact_on_cost?: number | null
+          impact_on_design?: string | null
+          impact_on_time?: number | null
+          implementation_status?: string | null
+          project_id?: string | null
+          request_date?: string
+          requested_by: string
           updated_at?: string | null
-          weather_conditions?: string | null
-          work_completed: string
         }
         Update: {
+          approval_date?: string | null
+          approval_notes?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          change_description?: string
+          change_id?: string | null
+          change_reason?: string | null
+          change_title?: string
           created_at?: string | null
-          created_by?: string | null
-          delays_encountered?: string | null
-          equipment_used?: string | null
+          documents?: string[] | null
           id?: string
-          labor_count?: number | null
-          materials_used?: string | null
-          next_day_plan?: string | null
-          photos_uploaded?: string[] | null
-          progress_percentage?: number | null
-          safety_incidents?: string | null
-          site_progress_id?: string | null
-          supervisor_name?: string | null
-          update_date?: string
+          impact_on_cost?: number | null
+          impact_on_design?: string | null
+          impact_on_time?: number | null
+          implementation_status?: string | null
+          project_id?: string | null
+          request_date?: string
+          requested_by?: string
           updated_at?: string | null
-          weather_conditions?: string | null
-          work_completed?: string
         }
         Relationships: [
           {
-            foreignKeyName: "site_daily_updates_site_progress_id_fkey"
-            columns: ["site_progress_id"]
+            foreignKeyName: "site_change_requests_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "site_progress"
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_daily_logs: {
+        Row: {
+          created_at: string | null
+          delays_encountered: string | null
+          equipment_used: string | null
+          id: string
+          issues_reported: string | null
+          labor_count: number | null
+          log_date: string
+          logged_by: string | null
+          materials_used: string | null
+          next_day_plan: string | null
+          notes: string | null
+          overall_progress_percentage: number | null
+          photos_uploaded: string[] | null
+          progress_summary: string | null
+          project_id: string | null
+          safety_incidents: string | null
+          supervisor_name: string | null
+          temperature: string | null
+          updated_at: string | null
+          weather_conditions: string | null
+          work_completed: string
+          work_shift: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delays_encountered?: string | null
+          equipment_used?: string | null
+          id?: string
+          issues_reported?: string | null
+          labor_count?: number | null
+          log_date?: string
+          logged_by?: string | null
+          materials_used?: string | null
+          next_day_plan?: string | null
+          notes?: string | null
+          overall_progress_percentage?: number | null
+          photos_uploaded?: string[] | null
+          progress_summary?: string | null
+          project_id?: string | null
+          safety_incidents?: string | null
+          supervisor_name?: string | null
+          temperature?: string | null
+          updated_at?: string | null
+          weather_conditions?: string | null
+          work_completed: string
+          work_shift?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delays_encountered?: string | null
+          equipment_used?: string | null
+          id?: string
+          issues_reported?: string | null
+          labor_count?: number | null
+          log_date?: string
+          logged_by?: string | null
+          materials_used?: string | null
+          next_day_plan?: string | null
+          notes?: string | null
+          overall_progress_percentage?: number | null
+          photos_uploaded?: string[] | null
+          progress_summary?: string | null
+          project_id?: string | null
+          safety_incidents?: string | null
+          supervisor_name?: string | null
+          temperature?: string | null
+          updated_at?: string | null
+          weather_conditions?: string | null
+          work_completed?: string
+          work_shift?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_daily_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
             referencedColumns: ["id"]
           },
         ]
       }
       site_documents: {
         Row: {
-          created_at: string | null
+          document_category: string | null
           document_date: string | null
           document_name: string
           document_type: string
@@ -801,12 +890,13 @@ export type Database = {
           id: string
           is_important: boolean | null
           notes: string | null
-          site_progress_id: string | null
+          phase_id: string | null
+          project_id: string | null
           upload_date: string | null
           uploaded_by: string | null
         }
         Insert: {
-          created_at?: string | null
+          document_category?: string | null
           document_date?: string | null
           document_name: string
           document_type: string
@@ -816,12 +906,13 @@ export type Database = {
           id?: string
           is_important?: boolean | null
           notes?: string | null
-          site_progress_id?: string | null
+          phase_id?: string | null
+          project_id?: string | null
           upload_date?: string | null
           uploaded_by?: string | null
         }
         Update: {
-          created_at?: string | null
+          document_category?: string | null
           document_date?: string | null
           document_name?: string
           document_type?: string
@@ -831,145 +922,618 @@ export type Database = {
           id?: string
           is_important?: boolean | null
           notes?: string | null
-          site_progress_id?: string | null
+          phase_id?: string | null
+          project_id?: string | null
           upload_date?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "site_documents_site_progress_id_fkey"
-            columns: ["site_progress_id"]
+            foreignKeyName: "site_documents_phase_id_fkey"
+            columns: ["phase_id"]
             isOneToOne: false
-            referencedRelation: "site_progress"
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
             referencedColumns: ["id"]
           },
         ]
       }
-      site_important_dates: {
+      site_equipment_log: {
         Row: {
-          actual_date: string | null
-          assigned_to: string | null
+          condition_status: string | null
           created_at: string | null
-          date_title: string
-          date_type: string
-          description: string | null
+          equipment_id: string | null
+          equipment_name: string
+          equipment_type: string | null
+          fuel_cost: number | null
+          fuel_used: number | null
           id: string
+          log_date: string
+          maintenance_notes: string | null
           notes: string | null
+          operator_name: string | null
+          phase_id: string | null
+          project_id: string | null
+          rental_cost: number | null
+          usage_duration: number | null
+        }
+        Insert: {
+          condition_status?: string | null
+          created_at?: string | null
+          equipment_id?: string | null
+          equipment_name: string
+          equipment_type?: string | null
+          fuel_cost?: number | null
+          fuel_used?: number | null
+          id?: string
+          log_date?: string
+          maintenance_notes?: string | null
+          notes?: string | null
+          operator_name?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          rental_cost?: number | null
+          usage_duration?: number | null
+        }
+        Update: {
+          condition_status?: string | null
+          created_at?: string | null
+          equipment_id?: string | null
+          equipment_name?: string
+          equipment_type?: string | null
+          fuel_cost?: number | null
+          fuel_used?: number | null
+          id?: string
+          log_date?: string
+          maintenance_notes?: string | null
+          notes?: string | null
+          operator_name?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          rental_cost?: number | null
+          usage_duration?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_equipment_log_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_equipment_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_financial_log: {
+        Row: {
+          amount: number
+          approval_status: string | null
+          approved_by: string | null
+          created_at: string | null
+          expense_category: string
+          expense_description: string
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          payment_method: string | null
+          payment_status: string | null
+          phase_id: string | null
+          project_id: string | null
+          transaction_date: string
+          vendor_name: string | null
+        }
+        Insert: {
+          amount: number
+          approval_status?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          expense_category: string
+          expense_description: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          transaction_date?: string
+          vendor_name?: string | null
+        }
+        Update: {
+          amount?: number
+          approval_status?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          expense_category?: string
+          expense_description?: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          transaction_date?: string
+          vendor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_financial_log_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_financial_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_inspections: {
+        Row: {
+          approval_date: string | null
+          approval_status: string | null
+          approved_by: string | null
+          corrective_actions: string | null
+          created_at: string | null
+          documents: string[] | null
+          id: string
+          inspected_by: string
+          inspection_area: string | null
+          inspection_date: string
+          inspection_type: string | null
+          inspector_designation: string | null
+          issues_found: string | null
+          notes: string | null
+          observations: string | null
+          phase_id: string | null
+          photos: string[] | null
+          project_id: string | null
+          quality_rating: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          approval_date?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          documents?: string[] | null
+          id?: string
+          inspected_by: string
+          inspection_area?: string | null
+          inspection_date?: string
+          inspection_type?: string | null
+          inspector_designation?: string | null
+          issues_found?: string | null
+          notes?: string | null
+          observations?: string | null
+          phase_id?: string | null
+          photos?: string[] | null
+          project_id?: string | null
+          quality_rating?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          approval_date?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          corrective_actions?: string | null
+          created_at?: string | null
+          documents?: string[] | null
+          id?: string
+          inspected_by?: string
+          inspection_area?: string | null
+          inspection_date?: string
+          inspection_type?: string | null
+          inspector_designation?: string | null
+          issues_found?: string | null
+          notes?: string | null
+          observations?: string | null
+          phase_id?: string | null
+          photos?: string[] | null
+          project_id?: string | null
+          quality_rating?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_inspections_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_inspections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_issues: {
+        Row: {
+          assigned_to: string | null
+          attachments: string[] | null
+          created_at: string | null
+          deadline: string | null
+          id: string
+          issue_category: string | null
+          issue_description: string | null
+          issue_id: string | null
+          issue_title: string
+          phase_id: string | null
           priority: string | null
-          reminder_days_before: number | null
-          scheduled_date: string
-          site_progress_id: string | null
+          project_id: string | null
+          reported_by: string
+          reported_date: string
+          resolution_notes: string | null
+          resolved_by: string | null
+          resolved_date: string | null
+          severity: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
-          actual_date?: string | null
           assigned_to?: string | null
+          attachments?: string[] | null
           created_at?: string | null
-          date_title: string
-          date_type: string
-          description?: string | null
+          deadline?: string | null
           id?: string
-          notes?: string | null
+          issue_category?: string | null
+          issue_description?: string | null
+          issue_id?: string | null
+          issue_title: string
+          phase_id?: string | null
           priority?: string | null
-          reminder_days_before?: number | null
-          scheduled_date: string
-          site_progress_id?: string | null
+          project_id?: string | null
+          reported_by: string
+          reported_date?: string
+          resolution_notes?: string | null
+          resolved_by?: string | null
+          resolved_date?: string | null
+          severity?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
-          actual_date?: string | null
           assigned_to?: string | null
+          attachments?: string[] | null
           created_at?: string | null
-          date_title?: string
-          date_type?: string
-          description?: string | null
+          deadline?: string | null
           id?: string
-          notes?: string | null
+          issue_category?: string | null
+          issue_description?: string | null
+          issue_id?: string | null
+          issue_title?: string
+          phase_id?: string | null
           priority?: string | null
-          reminder_days_before?: number | null
-          scheduled_date?: string
-          site_progress_id?: string | null
+          project_id?: string | null
+          reported_by?: string
+          reported_date?: string
+          resolution_notes?: string | null
+          resolved_by?: string | null
+          resolved_date?: string | null
+          severity?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "site_important_dates_site_progress_id_fkey"
-            columns: ["site_progress_id"]
+            foreignKeyName: "site_issues_phase_id_fkey"
+            columns: ["phase_id"]
             isOneToOne: false
-            referencedRelation: "site_progress"
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
             referencedColumns: ["id"]
           },
         ]
       }
-      site_milestones: {
+      site_labor_log: {
+        Row: {
+          attendance_status: string | null
+          contractor_name: string | null
+          created_at: string | null
+          hours_worked: number | null
+          id: string
+          labor_type: string | null
+          log_date: string
+          notes: string | null
+          phase_id: string | null
+          project_id: string | null
+          supervisor_name: string | null
+          total_count: number
+          total_wages: number | null
+          wage_per_person: number | null
+          work_completed: string | null
+        }
+        Insert: {
+          attendance_status?: string | null
+          contractor_name?: string | null
+          created_at?: string | null
+          hours_worked?: number | null
+          id?: string
+          labor_type?: string | null
+          log_date?: string
+          notes?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          supervisor_name?: string | null
+          total_count: number
+          total_wages?: number | null
+          wage_per_person?: number | null
+          work_completed?: string | null
+        }
+        Update: {
+          attendance_status?: string | null
+          contractor_name?: string | null
+          created_at?: string | null
+          hours_worked?: number | null
+          id?: string
+          labor_type?: string | null
+          log_date?: string
+          notes?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          supervisor_name?: string | null
+          total_count?: number
+          total_wages?: number | null
+          wage_per_person?: number | null
+          work_completed?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_labor_log_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_labor_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_materials_log: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string | null
+          id: string
+          issued_to: string | null
+          log_date: string
+          material_category: string | null
+          material_code: string | null
+          material_name: string
+          notes: string | null
+          phase_id: string | null
+          project_id: string | null
+          quantity_issued: number
+          quantity_remaining: number | null
+          quantity_used: number | null
+          source: string | null
+          supplier_name: string | null
+          total_cost: number | null
+          unit: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string | null
+          id?: string
+          issued_to?: string | null
+          log_date?: string
+          material_category?: string | null
+          material_code?: string | null
+          material_name: string
+          notes?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          quantity_issued: number
+          quantity_remaining?: number | null
+          quantity_used?: number | null
+          source?: string | null
+          supplier_name?: string | null
+          total_cost?: number | null
+          unit: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string | null
+          id?: string
+          issued_to?: string | null
+          log_date?: string
+          material_category?: string | null
+          material_code?: string | null
+          material_name?: string
+          notes?: string | null
+          phase_id?: string | null
+          project_id?: string | null
+          quantity_issued?: number
+          quantity_remaining?: number | null
+          quantity_used?: number | null
+          source?: string | null
+          supplier_name?: string | null
+          total_cost?: number | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_materials_log_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_materials_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "site_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_phase_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_date: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          phase_id: string | null
+          planned_date: string | null
+          progress_percentage: number | null
+          status: string | null
+          task_description: string | null
+          task_name: string
+          task_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          phase_id?: string | null
+          planned_date?: string | null
+          progress_percentage?: number | null
+          status?: string | null
+          task_description?: string | null
+          task_name: string
+          task_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          phase_id?: string | null
+          planned_date?: string | null
+          progress_percentage?: number | null
+          status?: string | null
+          task_description?: string | null
+          task_name?: string
+          task_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_phase_tasks_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "site_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      site_phases: {
         Row: {
           actual_end_date: string | null
           actual_start_date: string | null
+          assigned_contractor: string | null
+          assigned_team: string | null
           budget_allocated: number | null
           budget_spent: number | null
           created_at: string | null
           dependencies: string | null
+          description: string | null
           id: string
-          milestone_description: string | null
-          milestone_name: string
           notes: string | null
+          phase_code: string | null
+          phase_name: string
+          phase_order: number | null
           planned_end_date: string | null
           planned_start_date: string | null
           progress_percentage: number | null
-          site_progress_id: string | null
+          project_id: string | null
           status: string | null
           updated_at: string | null
         }
         Insert: {
           actual_end_date?: string | null
           actual_start_date?: string | null
+          assigned_contractor?: string | null
+          assigned_team?: string | null
           budget_allocated?: number | null
           budget_spent?: number | null
           created_at?: string | null
           dependencies?: string | null
+          description?: string | null
           id?: string
-          milestone_description?: string | null
-          milestone_name: string
           notes?: string | null
+          phase_code?: string | null
+          phase_name: string
+          phase_order?: number | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           progress_percentage?: number | null
-          site_progress_id?: string | null
+          project_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Update: {
           actual_end_date?: string | null
           actual_start_date?: string | null
+          assigned_contractor?: string | null
+          assigned_team?: string | null
           budget_allocated?: number | null
           budget_spent?: number | null
           created_at?: string | null
           dependencies?: string | null
+          description?: string | null
           id?: string
-          milestone_description?: string | null
-          milestone_name?: string
           notes?: string | null
+          phase_code?: string | null
+          phase_name?: string
+          phase_order?: number | null
           planned_end_date?: string | null
           planned_start_date?: string | null
           progress_percentage?: number | null
-          site_progress_id?: string | null
+          project_id?: string | null
           status?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "site_milestones_site_progress_id_fkey"
-            columns: ["site_progress_id"]
+            foreignKeyName: "site_phases_project_id_fkey"
+            columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "site_progress"
+            referencedRelation: "site_projects"
             referencedColumns: ["id"]
           },
         ]
       }
-      site_progress: {
+      site_projects: {
         Row: {
           actual_completion_date: string | null
           approval_status: string | null
@@ -977,6 +1541,7 @@ export type Database = {
           building_permit_date: string | null
           building_permit_number: string | null
           city: string
+          client_id: string | null
           construction_type: string | null
           contractor_email: string | null
           contractor_name: string | null
@@ -985,6 +1550,7 @@ export type Database = {
           engineer_name: string | null
           environmental_clearance: boolean | null
           expected_completion_date: string | null
+          health_indicator: string | null
           id: string
           notes: string | null
           number_of_floors: number | null
@@ -993,6 +1559,7 @@ export type Database = {
           occupancy_certificate_number: string | null
           overall_progress_percentage: number | null
           pending_amount: number | null
+          project_code: string | null
           project_manager: string | null
           project_name: string
           project_status: string | null
@@ -1000,6 +1567,7 @@ export type Database = {
           property_id: string | null
           safety_compliance_status: string | null
           site_address: string
+          site_engineer: string | null
           spent_amount: number | null
           start_date: string
           state: string | null
@@ -1015,6 +1583,7 @@ export type Database = {
           building_permit_date?: string | null
           building_permit_number?: string | null
           city: string
+          client_id?: string | null
           construction_type?: string | null
           contractor_email?: string | null
           contractor_name?: string | null
@@ -1023,6 +1592,7 @@ export type Database = {
           engineer_name?: string | null
           environmental_clearance?: boolean | null
           expected_completion_date?: string | null
+          health_indicator?: string | null
           id?: string
           notes?: string | null
           number_of_floors?: number | null
@@ -1031,6 +1601,7 @@ export type Database = {
           occupancy_certificate_number?: string | null
           overall_progress_percentage?: number | null
           pending_amount?: number | null
+          project_code?: string | null
           project_manager?: string | null
           project_name: string
           project_status?: string | null
@@ -1038,6 +1609,7 @@ export type Database = {
           property_id?: string | null
           safety_compliance_status?: string | null
           site_address: string
+          site_engineer?: string | null
           spent_amount?: number | null
           start_date: string
           state?: string | null
@@ -1053,6 +1625,7 @@ export type Database = {
           building_permit_date?: string | null
           building_permit_number?: string | null
           city?: string
+          client_id?: string | null
           construction_type?: string | null
           contractor_email?: string | null
           contractor_name?: string | null
@@ -1061,6 +1634,7 @@ export type Database = {
           engineer_name?: string | null
           environmental_clearance?: boolean | null
           expected_completion_date?: string | null
+          health_indicator?: string | null
           id?: string
           notes?: string | null
           number_of_floors?: number | null
@@ -1069,6 +1643,7 @@ export type Database = {
           occupancy_certificate_number?: string | null
           overall_progress_percentage?: number | null
           pending_amount?: number | null
+          project_code?: string | null
           project_manager?: string | null
           project_name?: string
           project_status?: string | null
@@ -1076,6 +1651,7 @@ export type Database = {
           property_id?: string | null
           safety_compliance_status?: string | null
           site_address?: string
+          site_engineer?: string | null
           spent_amount?: number | null
           start_date?: string
           state?: string | null
@@ -1086,7 +1662,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "site_progress_property_id_fkey"
+            foreignKeyName: "site_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_projects_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"

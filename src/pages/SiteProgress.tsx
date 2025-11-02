@@ -23,7 +23,7 @@ export default function SiteProgress() {
       if (!user) return [];
       
       const { data, error } = await supabase
-        .from("site_progress")
+        .from("site_projects")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false});
@@ -41,6 +41,15 @@ export default function SiteProgress() {
       cancelled: "bg-gray-500",
     };
     return colors[status] || "bg-gray-500";
+  };
+
+  const getHealthColor = (health: string) => {
+    const colors: any = {
+      green: "bg-green-500",
+      yellow: "bg-yellow-500",
+      red: "bg-red-500",
+    };
+    return colors[health] || "bg-green-500";
   };
 
   return (
@@ -68,13 +77,18 @@ export default function SiteProgress() {
             <Card key={site.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => window.location.href = `/site-progress/${site.id}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Construction className="h-5 w-5 text-primary flex-shrink-0" />
                     <CardTitle className="text-base md:text-lg truncate">{site.project_name}</CardTitle>
                   </div>
-                  <Badge className={`${getStatusColor(site.project_status)} flex-shrink-0`}>
-                    {site.project_status}
-                  </Badge>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Badge className={`${getStatusColor(site.project_status)} text-xs`}>
+                      {site.project_status}
+                    </Badge>
+                    <Badge className={`${getHealthColor(site.health_indicator)} text-xs`}>
+                      {site.health_indicator}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
