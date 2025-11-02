@@ -14,6 +14,7 @@ import Maintenance from "./pages/Maintenance";
 import Profile from "./pages/Profile";
 import TenantManagement from "./pages/TenantManagement";
 import SiteProgress from "./pages/SiteProgress";
+import SiteProgressDetail from "./pages/SiteProgressDetail";
 import Quotations from "./pages/Quotations";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/maintenance" element={<AppLayout><Maintenance /></AppLayout>} />
           <Route path="/tenants" element={<AppLayout><TenantManagement /></AppLayout>} />
           <Route path="/site-progress" element={<AppLayout><SiteProgress /></AppLayout>} />
+          <Route path="/site-progress/:id" element={<AppLayout><SiteProgressDetail /></AppLayout>} />
           <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

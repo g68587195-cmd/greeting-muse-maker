@@ -132,6 +132,14 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
       return;
     }
 
+    // Update property status to sold if transaction is completed
+    if (values.status === 'completed') {
+      await supabase
+        .from("properties")
+        .update({ status: 'sold' })
+        .eq("id", values.property_id);
+    }
+
     toast.success(sale ? "Sale updated successfully" : "Sale created successfully");
     onSuccess();
   };

@@ -570,33 +570,61 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
               </div>
             </div>
 
-            {!property && (
-              <div className="space-y-2">
-                <Label>Property Images (Max 10, Total 15MB)</Label>
-                <div className="flex items-center gap-2">
-                  <Input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" id="image-upload" />
-                  <Label htmlFor="image-upload" className="flex items-center gap-2 cursor-pointer px-4 py-2 border rounded-md hover:bg-accent">
-                    <Upload className="h-4 w-4" />
-                    Choose Images
-                  </Label>
-                  <span className="text-sm text-muted-foreground">
-                    {imageFiles.length} file(s) selected
-                  </span>
-                </div>
-                {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative">
-                        <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-24 object-cover rounded" />
-                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeImage(index)}>
+            <div className="space-y-2">
+              <Label>Property Images (Max 10, Total 15MB)</Label>
+              {property && property.property_images && property.property_images.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground mb-2">Existing Images:</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {property.property_images.map((img) => (
+                      <div key={img.id} className="relative">
+                        <img src={img.image_url} alt="Property" className="w-full h-24 object-cover rounded" />
+                        <Button 
+                          type="button" 
+                          variant="destructive" 
+                          size="icon" 
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from('property_images')
+                              .delete()
+                              .eq('id', img.id);
+                            if (!error) {
+                              toast.success("Image deleted");
+                              onSuccess();
+                            }
+                          }}
+                        >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" id="image-upload" />
+                <Label htmlFor="image-upload" className="flex items-center gap-2 cursor-pointer px-4 py-2 border rounded-md hover:bg-accent">
+                  <Upload className="h-4 w-4" />
+                  {property ? "Add More Images" : "Choose Images"}
+                </Label>
+                <span className="text-sm text-muted-foreground">
+                  {imageFiles.length} file(s) selected
+                </span>
               </div>
-            )}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative">
+                      <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-24 object-cover rounded" />
+                      <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeImage(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

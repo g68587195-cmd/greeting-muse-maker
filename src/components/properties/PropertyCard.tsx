@@ -11,16 +11,18 @@ interface PropertyCardProps {
 export function PropertyCard({ property, onClick }: PropertyCardProps) {
   const primaryImage = property.property_images?.find(img => img.is_primary)?.image_url;
   const statusColors: Record<string, string> = {
-    available: "bg-success text-success-foreground",
-    under_offer: "bg-warning text-warning-foreground",
-    sold: "bg-destructive text-destructive-foreground",
-    rented: "bg-primary text-primary-foreground",
-    off_market: "bg-muted text-muted-foreground",
+    available: "bg-green-500 text-white",
+    under_offer: "bg-yellow-500 text-white",
+    sold: "bg-red-500 text-white",
+    rented: "bg-blue-500 text-white",
+    off_market: "bg-gray-500 text-white",
   };
+
+  const isSold = property.status === 'sold';
 
   return (
     <Card 
-      className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg"
+      className={`group cursor-pointer overflow-hidden transition-all hover:shadow-lg ${isSold ? 'opacity-60' : ''}`}
       onClick={onClick}
     >
       <div className="relative h-48 overflow-hidden bg-muted">
@@ -35,7 +37,7 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
             <Building2 className="h-16 w-16 text-muted-foreground" />
           </div>
         )}
-        <Badge className={`absolute right-2 top-2 shadow-md ${statusColors[property.status] || 'bg-muted text-muted-foreground'}`}>
+        <Badge className={`absolute right-2 top-2 shadow-md uppercase ${statusColors[property.status] || 'bg-gray-500 text-white'}`}>
           {property.status.replace("_", " ")}
         </Badge>
       </div>
