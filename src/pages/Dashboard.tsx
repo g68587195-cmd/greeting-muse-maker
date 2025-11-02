@@ -137,7 +137,7 @@ export default function Dashboard() {
 
     // Fetch active sites
     const { count: activeSites } = await supabase
-      .from("site_progress")
+      .from("site_projects")
       .select("*", { count: "exact", head: true })
       .in("project_status", ["planning", "in_progress"])
       .eq("user_id", user.id);

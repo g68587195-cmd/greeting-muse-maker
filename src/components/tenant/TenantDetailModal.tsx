@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
+import { TenantPendingPayments } from "./TenantPendingPayments";
 
 interface TenantDetailModalProps {
   tenant: any;
@@ -93,8 +94,9 @@ export function TenantDetailModal({ tenant, open, onOpenChange, onEdit, onDelete
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="pending">Pending Payments</TabsTrigger>
             <TabsTrigger value="payments">Payment Logs</TabsTrigger>
           </TabsList>
 
@@ -129,6 +131,10 @@ export function TenantDetailModal({ tenant, open, onOpenChange, onEdit, onDelete
               </div>
             </div>
             <Button onClick={onEdit}>Edit Tenant</Button>
+          </TabsContent>
+
+          <TabsContent value="pending" className="space-y-4">
+            <TenantPendingPayments tenantId={tenant.id} />
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-4">
