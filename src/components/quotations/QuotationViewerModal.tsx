@@ -70,11 +70,11 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
     pdf.setFont("helvetica", "bold");
     pdf.text(companyInfo?.name || "Your Company", margin, yPos);
 
-    // INVOICE heading (right side, red color)
+    // QUOTATION heading (right side, red color)
     pdf.setFontSize(22);
     pdf.setTextColor(220, 53, 69);
-    const invoiceWidth = pdf.getTextWidth("INVOICE");
-    pdf.text("INVOICE", pageWidth - invoiceWidth - margin, yPos);
+    const quotationWidth = pdf.getTextWidth("QUOTATION");
+    pdf.text("QUOTATION", pageWidth - quotationWidth - margin, yPos);
 
     yPos += 8;
 
