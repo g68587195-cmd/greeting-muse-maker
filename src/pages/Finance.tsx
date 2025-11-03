@@ -32,6 +32,31 @@ export default function Finance() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false});
       if (error) throw error;
+      
+      // Auto-update overdue payments
+      const today = new Date().toISOString().split('T')[0];
+      const overdueUpdates = data?.filter(p => 
+        p.due_date && 
+        p.due_date < today && 
+        p.status === 'pending'
+      ).map(p => 
+        supabase.from("payments").update({ status: 'overdue' }).eq("id", p.id)
+      ) || [];
+      
+      if (overdueUpdates.length > 0) {
+        await Promise.all(overdueUpdates);
+        // Refetch data
+        const { data: updatedData } = await supabase
+          .from("payments")
+          .select(`
+            *,
+            clients(full_name, email, phone)
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false});
+        return updatedData || [];
+      }
+      
       return data;
     },
   });

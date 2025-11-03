@@ -75,9 +75,17 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
           )}
         </div>
 
-        <Badge variant="outline" className="mt-3">
-          {property.property_type}
-        </Badge>
+        <div className="flex gap-2 mt-3">
+          <Badge variant="outline">
+            {property.property_type}
+          </Badge>
+          <Badge 
+            variant="secondary" 
+            className={property.category === 'for_sale' ? 'bg-blue-500/10 text-blue-700' : 'bg-purple-500/10 text-purple-700'}
+          >
+            {property.category.replace('_', ' ')}
+          </Badge>
+        </div>
       </CardContent>
     </Card>
   );

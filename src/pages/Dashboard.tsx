@@ -11,6 +11,7 @@ interface Stats {
   totalClients: number;
   activeLeads: number;
   totalRevenue: number;
+  companyProfit: number;
   pendingMaintenance: number;
   totalQuotations: number;
   activeSites: number;
@@ -25,6 +26,7 @@ export default function Dashboard() {
     totalClients: 0,
     activeLeads: 0,
     totalRevenue: 0,
+    companyProfit: 0,
     pendingMaintenance: 0,
     totalQuotations: 0,
     activeSites: 0,
@@ -98,15 +100,24 @@ export default function Dashboard() {
       .eq("status", "completed")
       .eq("user_id", user.id);
 
+    const { data: allTenants } = await supabase
+      .from("tenant_management")
+      .select("id")
+      .eq("user_id", user.id);
+
+    const tenantIds = allTenants?.map(t => t.id) || [];
+    
     const { data: tenantPayments } = await supabase
       .from("tenant_payment_logs")
-      .select("amount, payment_date, tenant_management_id")
-      .eq("tenant_management_id", user.id);
+      .select("amount, payment_date")
+      .in("tenant_management_id", tenantIds);
 
     const paymentsTotal = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-    const salesTotal = salesRevenue?.reduce((sum, s) => sum + Number(s.company_revenue || s.sale_price || 0), 0) || 0;
+    const salesCompanyRevenue = salesRevenue?.reduce((sum, s) => sum + Number(s.company_revenue || 0), 0) || 0;
     const tenantTotal = tenantPayments?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-    const totalRevenue = paymentsTotal + salesTotal + tenantTotal;
+    
+    const totalRevenue = paymentsTotal + salesCompanyRevenue + tenantTotal;
+    const companyProfit = salesCompanyRevenue + tenantTotal;
 
     // Calculate monthly revenue for last 6 months
     const monthlyData: any = {};
@@ -165,6 +176,7 @@ export default function Dashboard() {
       totalClients: totalClients || 0,
       activeLeads: activeLeads || 0,
       totalRevenue,
+      companyProfit,
       pendingMaintenance: pendingMaintenance || 0,
       totalQuotations: totalQuotations || 0,
       activeSites: activeSites || 0,
@@ -204,6 +216,13 @@ export default function Dashboard() {
       title: "Total Revenue",
       value: `₹${formatIndianNumber(stats.totalRevenue)}`,
       icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Company Profit",
+      value: `₹${formatIndianNumber(stats.companyProfit)}`,
+      icon: TrendingUp,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
@@ -303,7 +322,11 @@ export default function Dashboard() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--accent))" />
+                  <Bar dataKey="value">
+                    {leadStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -356,7 +379,16 @@ export default function Dashboard() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="hsl(142 76% 46%)" />
+                <Bar dataKey="value">
+                  {[
+                    { name: "Properties", value: stats.totalProperties },
+                    { name: "Clients", value: stats.totalClients },
+                    { name: "Leads", value: stats.activeLeads },
+                    { name: "Sites", value: stats.activeSites },
+                  ].map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

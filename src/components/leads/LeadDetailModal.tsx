@@ -6,9 +6,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Building2, User, Calendar, Tag } from "lucide-react";
+import { Edit, Trash2, Building2, User, Calendar, Tag, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface LeadDetailModalProps {
   lead: any;
@@ -34,6 +37,49 @@ export function LeadDetailModal({
   onEdit,
   onDelete,
 }: LeadDetailModalProps) {
+  const queryClient = useQueryClient();
+
+  const convertToClientMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create client from lead
+      const { data: client, error: clientError } = await supabase
+        .from("clients")
+        .insert([{
+          user_id: user.id,
+          full_name: lead.lead_name || "Client",
+          email: lead.lead_email,
+          phone: lead.lead_phone,
+          notes: lead.notes ? `Converted from lead. Original notes: ${lead.notes}` : "Converted from lead"
+        }])
+        .select()
+        .single();
+
+      if (clientError) throw clientError;
+
+      // Update lead status to qualified
+      const { error: leadError } = await supabase
+        .from("leads")
+        .update({ status: 'qualified', client_id: client.id })
+        .eq("id", lead.id);
+
+      if (leadError) throw leadError;
+
+      return client;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Lead converted to client successfully!");
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to convert lead");
+    }
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -44,6 +90,12 @@ export function LeadDetailModal({
               <DialogDescription>View and manage lead information</DialogDescription>
             </div>
             <div className="flex gap-2">
+              {lead.status !== 'qualified' && lead.status !== 'converted' && (
+                <Button size="sm" variant="default" onClick={() => convertToClientMutation.mutate()}>
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Convert to Client
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={() => onEdit(lead)}>
                 <Edit className="h-4 w-4" />
               </Button>

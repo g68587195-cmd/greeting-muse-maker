@@ -27,7 +27,16 @@ export default function Maintenance() {
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      
+      // Sort by priority (high first) and status (completed last)
+      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      const statusOrder = { pending: 0, in_progress: 1, cancelled: 2, completed: 3 };
+      
+      return data?.sort((a, b) => {
+        const statusDiff = (statusOrder[a.status as keyof typeof statusOrder] || 0) - (statusOrder[b.status as keyof typeof statusOrder] || 0);
+        if (statusDiff !== 0) return statusDiff;
+        return (priorityOrder[a.priority as keyof typeof priorityOrder] || 0) - (priorityOrder[b.priority as keyof typeof priorityOrder] || 0);
+      }) || [];
     },
   });
 
