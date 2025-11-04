@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus } from "lucide-react";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
 import { useState } from "react";
@@ -15,10 +16,12 @@ import { EquipmentLogDialog } from "@/components/site/EquipmentLogDialog";
 import { InspectionDialog } from "@/components/site/InspectionDialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function SiteProgressDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
   const [dailyLogDialogOpen, setDailyLogDialogOpen] = useState(false);
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
@@ -220,13 +223,32 @@ export default function SiteProgressDetail() {
             {phases.map((phase: any) => (
               <Card key={phase.id}>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{phase.phase_name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{phase.phase_code}</p>
+                    <div className="flex justify-between">
+                      <div>
+                        <CardTitle>{phase.phase_name}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{phase.phase_code}</p>
+                      </div>
+                      <Select value={phase.status} onValueChange={async (value) => {
+                        const { error } = await supabase
+                          .from("site_phases")
+                          .update({ status: value })
+                          .eq("id", phase.id);
+                        if (!error) {
+                          queryClient.invalidateQueries({ queryKey: ["site_phases", id] });
+                          toast.success("Phase status updated");
+                        }
+                      }}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="not_started">Not Started</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="on_hold">On Hold</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Badge>{phase.status}</Badge>
-                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">

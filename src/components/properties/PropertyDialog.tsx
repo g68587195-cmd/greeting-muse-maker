@@ -273,14 +273,15 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
         for (let i = 0; i < imageFiles.length; i++) {
           const file = imageFiles[i];
           const fileExt = file.name.split('.').pop();
-          const fileName = `${propertyId}/${Math.random()}.${fileExt}`;
+          const fileName = `${propertyId}/${Date.now()}_${Math.random()}.${fileExt}`;
 
-          const { error: uploadError } = await supabase.storage
+          const { error: uploadError, data: uploadData } = await supabase.storage
             .from('property-images')
-            .upload(fileName, file);
+            .upload(fileName, file, { upsert: true });
 
           if (uploadError) {
             console.error("Upload error:", uploadError);
+            toast.error("Failed to upload image");
             continue;
           }
 
@@ -288,12 +289,16 @@ export function PropertyDialog({ open, onOpenChange, property, onSuccess }: Prop
             .from('property-images')
             .getPublicUrl(fileName);
 
-          await supabase.from('property_images').insert({
+          const { error: insertError } = await supabase.from('property_images').insert({
             property_id: propertyId,
             image_url: publicUrl,
-            is_primary: i === 0,
-            display_order: i,
+            is_primary: i === 0 && (!property || !property.property_images?.length),
+            display_order: (property?.property_images?.length || 0) + i,
           });
+
+          if (insertError) {
+            console.error("Insert error:", insertError);
+          }
         }
       }
 

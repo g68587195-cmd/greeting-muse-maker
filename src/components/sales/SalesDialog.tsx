@@ -70,9 +70,12 @@ export function SalesDialog({ open, onOpenChange, sale, onSuccess }: SalesDialog
   });
 
   const { data: properties = [] } = useQuery({
-    queryKey: ["properties"],
+    queryKey: ["properties-for-sale"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("properties").select("id, title");
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id, title, category")
+        .eq("category", "for_sale");
       if (error) throw error;
       return data;
     },

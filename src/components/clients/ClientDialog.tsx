@@ -35,6 +35,7 @@ const formSchema = z.object({
   phone: z.string().min(10, "Phone must be at least 10 digits"),
   address: z.string().optional(),
   client_type: z.string(),
+  site_project_id: z.string().optional(),
   occupation: z.string().optional(),
   annual_income: z.string().optional(),
   preferred_locations: z.string().optional(),
@@ -55,6 +56,7 @@ interface ClientDialogProps {
 export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDialogProps) {
   const [properties, setProperties] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [siteProjects, setSiteProjects] = useState<any[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,6 +66,7 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
       phone: "",
       address: "",
       client_type: "buyer",
+      site_project_id: "",
       occupation: "",
       annual_income: "",
       preferred_locations: "",
@@ -99,8 +102,22 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
       setProperties(data || []);
     };
 
+    const fetchSiteProjects = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || clientType !== "site_client") return;
+
+      const { data } = await supabase
+        .from("site_projects")
+        .select("id, project_name, project_code")
+        .eq("user_id", user.id)
+        .order("project_name");
+
+      setSiteProjects(data || []);
+    };
+
     if (open) {
       fetchProperties();
+      fetchSiteProjects();
     }
   }, [clientType, open]);
 
@@ -112,6 +129,7 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
         phone: client.phone || "",
         address: client.address || "",
         client_type: client.client_type || "buyer",
+        site_project_id: client.preferences?.site_project_id || "",
         occupation: client.preferences?.occupation || "",
         annual_income: client.preferences?.annual_income || "",
         preferred_locations: client.preferences?.preferred_locations || "",
@@ -134,6 +152,7 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
     }
 
     const preferences = {
+      site_project_id: values.site_project_id,
       occupation: values.occupation,
       annual_income: values.annual_income,
       preferred_locations: values.preferred_locations,
@@ -210,6 +229,7 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
                         <SelectItem value="tenant">Tenant</SelectItem>
                         <SelectItem value="landlord">Landlord</SelectItem>
                         <SelectItem value="investor">Investor</SelectItem>
+                        <SelectItem value="site_client">Site Client</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -242,6 +262,34 @@ export function ClientDialog({ open, onOpenChange, client, onSuccess }: ClientDi
                   </FormItem>
                 )}
               />
+              
+              {clientType === "site_client" && (
+                <FormField
+                  control={form.control}
+                  name="site_project_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Associated Project</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {siteProjects.map((project: any) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.project_name} {project.project_code && `(${project.project_code})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
               <FormField
                 control={form.control}
                 name="occupation"
