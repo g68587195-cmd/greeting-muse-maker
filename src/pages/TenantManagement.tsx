@@ -297,12 +297,12 @@ export default function TenantManagement() {
           tenant={viewTenant}
           open={!!viewTenant}
           onOpenChange={(open) => !open && setViewTenant(null)}
-          onEdit={(tenant) => {
-            setSelectedTenant(tenant);
+          onEdit={() => {
+            setSelectedTenant(viewTenant);
             setViewTenant(null);
             setIsDialogOpen(true);
           }}
-          onDelete={(tenant) => setViewTenant(null)}
+          onDelete={(id) => setViewTenant(null)}
         />
       )}
     </div>
