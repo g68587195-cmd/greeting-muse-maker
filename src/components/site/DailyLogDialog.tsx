@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 
 interface DailyLogDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     log_date: new Date().toISOString().split('T')[0],
+    phase_id: "",
     work_completed: "",
     labor_count: "",
     weather_conditions: "",
@@ -27,11 +29,26 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
     notes: "",
   });
 
+  const { data: phases = [] } = useQuery({
+    queryKey: ["site_phases", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_phases")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("phase_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId && open,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const { error } = await supabase.from("site_daily_logs").insert({
       project_id: projectId,
+      phase_id: formData.phase_id || null,
       ...formData,
       labor_count: parseInt(formData.labor_count) || 0,
     });
@@ -46,6 +63,7 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
     onOpenChange(false);
     setFormData({
       log_date: new Date().toISOString().split('T')[0],
+      phase_id: "",
       work_completed: "",
       labor_count: "",
       weather_conditions: "",
@@ -72,6 +90,22 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
               onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
               required
             />
+          </div>
+
+          <div>
+            <Label htmlFor="phase_id">Project Phase</Label>
+            <Select value={formData.phase_id} onValueChange={(value) => setFormData({ ...formData, phase_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select phase (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {phases.map((phase) => (
+                  <SelectItem key={phase.id} value={phase.id}>
+                    {phase.phase_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

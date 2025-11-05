@@ -5,18 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, DollarSign } from "lucide-react";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PhaseDialog } from "@/components/site/PhaseDialog";
 import { DailyLogDialog } from "@/components/site/DailyLogDialog";
 import { MaterialLogDialog } from "@/components/site/MaterialLogDialog";
 import { LaborLogDialog } from "@/components/site/LaborLogDialog";
 import { EquipmentLogDialog } from "@/components/site/EquipmentLogDialog";
 import { InspectionDialog } from "@/components/site/InspectionDialog";
+import { PhasePaymentDialog } from "@/components/site/PhasePaymentDialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { format, isBefore, isAfter, startOfDay } from "date-fns";
 
 export default function SiteProgressDetail() {
   const { id } = useParams();
@@ -28,6 +31,9 @@ export default function SiteProgressDetail() {
   const [laborDialogOpen, setLaborDialogOpen] = useState(false);
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
+  const [phasePaymentDialogOpen, setPhasePaymentDialogOpen] = useState(false);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
+  const [viewPhaseDetails, setViewPhaseDetails] = useState<any>(null);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["site_project", id],
@@ -56,7 +62,24 @@ export default function SiteProgressDetail() {
         .eq("project_id", id)
         .order("phase_order");
       if (error) throw error;
-      return data;
+      
+      // Check and update overdue statuses
+      const today = startOfDay(new Date());
+      const updates = data?.map(async (phase) => {
+        if (phase.status !== "completed" && phase.status !== "overdue") {
+          const expectedEnd = phase.planned_end_date ? new Date(phase.planned_end_date) : null;
+          if (expectedEnd && isBefore(expectedEnd, today)) {
+            await supabase
+              .from("site_phases")
+              .update({ status: "overdue" })
+              .eq("id", phase.id);
+            return { ...phase, status: "overdue" };
+          }
+        }
+        return phase;
+      });
+      
+      return updates ? await Promise.all(updates) : data;
     },
     enabled: !!id,
   });
@@ -220,34 +243,29 @@ export default function SiteProgressDetail() {
             </Button>
           </div>
           <div className="grid gap-4">
-            {phases.map((phase: any) => (
-              <Card key={phase.id}>
+            {phases.map((phase: any) => {
+              const getPhaseStatusColor = (status: string) => {
+                const colors: Record<string, string> = {
+                  not_started: "bg-gray-500 text-white",
+                  in_progress: "bg-blue-500 text-white",
+                  completed: "bg-green-500 text-white",
+                  on_hold: "bg-yellow-500 text-white",
+                  overdue: "bg-red-500 text-white",
+                };
+                return colors[status] || "bg-gray-500 text-white";
+              };
+
+              return (
+              <Card key={phase.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setViewPhaseDetails(phase)}>
                 <CardHeader>
-                    <div className="flex justify-between">
-                      <div>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
                         <CardTitle>{phase.phase_name}</CardTitle>
                         <p className="text-sm text-muted-foreground">{phase.phase_code}</p>
                       </div>
-                      <Select value={phase.status} onValueChange={async (value) => {
-                        const { error } = await supabase
-                          .from("site_phases")
-                          .update({ status: value })
-                          .eq("id", phase.id);
-                        if (!error) {
-                          queryClient.invalidateQueries({ queryKey: ["site_phases", id] });
-                          toast.success("Phase status updated");
-                        }
-                      }}>
-                        <SelectTrigger className="w-[150px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="not_started">Not Started</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="on_hold">On Hold</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Badge className={getPhaseStatusColor(phase.status)}>
+                        {phase.status?.replace("_", " ")}
+                      </Badge>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -264,13 +282,27 @@ export default function SiteProgressDetail() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Budget Spent</p>
-                        <p className="font-semibold">₹{formatIndianNumber(phase.budget_spent)}</p>
+                        <p className="font-semibold text-primary">₹{formatIndianNumber(phase.budget_spent)}</p>
                       </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPhaseId(phase.id);
+                          setPhasePaymentDialogOpen(true);
+                        }}
+                      >
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Add Payment
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )})}
             {phases.length === 0 && (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -485,6 +517,110 @@ export default function SiteProgressDetail() {
       <LaborLogDialog open={laborDialogOpen} onOpenChange={setLaborDialogOpen} projectId={id!} />
       <EquipmentLogDialog open={equipmentDialogOpen} onOpenChange={setEquipmentDialogOpen} projectId={id!} />
       <InspectionDialog open={inspectionDialogOpen} onOpenChange={setInspectionDialogOpen} projectId={id!} />
+      
+      {selectedPhaseId && (
+        <PhasePaymentDialog
+          open={phasePaymentDialogOpen}
+          onOpenChange={setPhasePaymentDialogOpen}
+          phaseId={selectedPhaseId}
+          projectId={id!}
+        />
+      )}
+      
+      {viewPhaseDetails && (
+        <Dialog open={!!viewPhaseDetails} onOpenChange={(open) => !open && setViewPhaseDetails(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{viewPhaseDetails.phase_name} - Details</DialogTitle>
+            </DialogHeader>
+            <Tabs defaultValue="logs">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="logs">Daily Logs</TabsTrigger>
+                <TabsTrigger value="payments">Phase Info</TabsTrigger>
+              </TabsList>
+              <TabsContent value="logs" className="space-y-4">
+                <div className="space-y-4">
+                  {dailyLogs
+                    .filter((log: any) => log.phase_id === viewPhaseDetails.id)
+                    .reduce((acc: any, log: any) => {
+                      const month = format(new Date(log.log_date), "MMMM yyyy");
+                      if (!acc[month]) acc[month] = [];
+                      acc[month].push(log);
+                      return acc;
+                    }, {})}
+                  {Object.entries(
+                    dailyLogs
+                      .filter((log: any) => log.phase_id === viewPhaseDetails.id)
+                      .reduce((acc: any, log: any) => {
+                        const month = format(new Date(log.log_date), "MMMM yyyy");
+                        if (!acc[month]) acc[month] = [];
+                        acc[month].push(log);
+                        return acc;
+                      }, {})
+                  ).map(([month, logs]: [string, any]) => (
+                    <div key={month}>
+                      <h3 className="font-semibold mb-2">{month}</h3>
+                      <div className="space-y-2">
+                        {logs.map((log: any) => (
+                          <Card key={log.id}>
+                            <CardHeader className="py-3">
+                              <CardTitle className="text-sm">
+                                {format(new Date(log.log_date), "MMM dd, yyyy")}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="py-3 space-y-2">
+                              <div>
+                                <p className="text-xs font-semibold">Work Completed:</p>
+                                <p className="text-xs text-muted-foreground">{log.work_completed}</p>
+                              </div>
+                              {log.labor_count > 0 && (
+                                <p className="text-xs">Labor: {log.labor_count} workers</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {dailyLogs.filter((log: any) => log.phase_id === viewPhaseDetails.id).length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">No daily logs for this phase yet</p>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="payments" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Budget Allocated</p>
+                    <p className="text-2xl font-bold">₹{formatIndianNumber(viewPhaseDetails.budget_allocated)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Budget Spent</p>
+                    <p className="text-2xl font-bold text-primary">₹{formatIndianNumber(viewPhaseDetails.budget_spent)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Remaining Budget</p>
+                    <p className="text-2xl font-bold">
+                      ₹{formatIndianNumber((viewPhaseDetails.budget_allocated || 0) - (viewPhaseDetails.budget_spent || 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Progress</p>
+                    <p className="text-2xl font-bold">{viewPhaseDetails.progress_percentage}%</p>
+                  </div>
+                </div>
+                <Button onClick={() => {
+                  setSelectedPhaseId(viewPhaseDetails.id);
+                  setPhasePaymentDialogOpen(true);
+                  setViewPhaseDetails(null);
+                }} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Payment to Phase
+                </Button>
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

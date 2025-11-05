@@ -113,10 +113,11 @@ export default function Dashboard() {
       .in("tenant_management_id", tenantIds);
 
     const paymentsTotal = payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+    const salesTotal = salesRevenue?.reduce((sum, s) => sum + Number(s.sale_price || 0), 0) || 0;
     const salesCompanyRevenue = salesRevenue?.reduce((sum, s) => sum + Number(s.company_revenue || 0), 0) || 0;
     const tenantTotal = tenantPayments?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
     
-    const totalRevenue = paymentsTotal + salesCompanyRevenue + tenantTotal;
+    const totalRevenue = paymentsTotal + salesTotal + tenantTotal;
     const companyProfit = salesCompanyRevenue + tenantTotal;
 
     // Calculate monthly revenue for last 6 months

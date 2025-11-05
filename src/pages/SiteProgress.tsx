@@ -120,9 +120,7 @@ export default function SiteProgress() {
                     <Badge className={getStatusColor(project.project_status)}>
                       {project.project_status?.replace("_", " ")}
                     </Badge>
-                    <Badge className={getHealthColor(project.health_indicator)}>
-                      {project.health_indicator}
-                    </Badge>
+                    <Badge className={getHealthColor(project.health_indicator)} />
                   </div>
                 </div>
               </CardHeader>
