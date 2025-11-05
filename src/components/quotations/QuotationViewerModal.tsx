@@ -12,9 +12,10 @@ interface QuotationViewerModalProps {
   onOpenChange: (open: boolean) => void;
   quotation: any;
   companyInfo?: any;
+  isInvoiceMode?: boolean;
 }
 
-export function QuotationViewerModal({ open, onOpenChange, quotation, companyInfo }: QuotationViewerModalProps) {
+export function QuotationViewerModal({ open, onOpenChange, quotation, companyInfo, isInvoiceMode = false }: QuotationViewerModalProps) {
   const [fullQuotation, setFullQuotation] = useState<any>(null);
 
   useEffect(() => {

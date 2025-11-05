@@ -16,6 +16,7 @@ interface QuotationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   quotation?: any;
+  isInvoiceMode?: boolean;
   onSuccess: () => void;
 }
 
@@ -28,7 +29,7 @@ interface QuotationItem {
   amount: number;
 }
 
-export function QuotationDialog({ open, onOpenChange, quotation, onSuccess }: QuotationDialogProps) {
+export function QuotationDialog({ open, onOpenChange, quotation, isInvoiceMode = false, onSuccess }: QuotationDialogProps) {
   const [clientId, setClientId] = useState("");
   const [items, setItems] = useState<QuotationItem[]>([
     { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, tax_rate: 18, amount: 0 }

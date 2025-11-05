@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, Eye, Edit } from "lucide-react";
+import { Plus, FileText, Eye, Edit, FileSpreadsheet } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +18,7 @@ export default function Quotations() {
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [isInvoiceMode, setIsInvoiceMode] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -85,16 +87,27 @@ export default function Quotations() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Quotations</h1>
-          <p className="text-muted-foreground mt-1">Create and manage quotations</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            {isInvoiceMode ? "Invoices" : "Quotations"}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
+            Create and manage {isInvoiceMode ? "invoices" : "quotations"}
+          </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Quotation
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <Switch checked={isInvoiceMode} onCheckedChange={setIsInvoiceMode} />
+            <FileSpreadsheet className="h-4 w-4" />
+          </div>
+          <Button onClick={() => setIsDialogOpen(true)} className="gap-2" size="sm">
+            <Plus className="h-4 w-4" />
+            Create {isInvoiceMode ? "Invoice" : "Quotation"}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -190,6 +203,7 @@ export default function Quotations() {
           if (!open) setSelectedQuotation(null);
         }}
         quotation={selectedQuotation}
+        isInvoiceMode={isInvoiceMode}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["quotations"] });
           setIsDialogOpen(false);
@@ -203,6 +217,7 @@ export default function Quotations() {
           onOpenChange={setViewerOpen}
           quotation={selectedQuotation}
           companyInfo={companyInfo}
+          isInvoiceMode={isInvoiceMode}
         />
       )}
     </div>

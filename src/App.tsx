@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import TenantManagement from "./pages/TenantManagement";
 import SiteProgress from "./pages/SiteProgress";
 import SiteProgressDetail from "./pages/SiteProgressDetail";
+import ProjectExpenses from "./pages/ProjectExpenses";
 import Projects from "./pages/Projects";
 import Quotations from "./pages/Quotations";
 import Auth from "./pages/Auth";
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/tenants" element={<AppLayout><TenantManagement /></AppLayout>} />
           <Route path="/site-progress" element={<AppLayout><SiteProgress /></AppLayout>} />
           <Route path="/site-progress/:id" element={<AppLayout><SiteProgressDetail /></AppLayout>} />
+          <Route path="/site-progress/:id/expenses" element={<AppLayout><ProjectExpenses /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
           <Route path="*" element={<NotFound />} />

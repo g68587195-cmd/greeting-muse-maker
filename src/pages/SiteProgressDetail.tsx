@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, DollarSign, Receipt } from "lucide-react";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
 import { useState, useEffect } from "react";
 import { PhaseDialog } from "@/components/site/PhaseDialog";
@@ -178,65 +178,71 @@ export default function SiteProgressDetail() {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={() => navigate("/site-progress")}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Projects
-      </Button>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Button variant="ghost" onClick={() => navigate("/site-progress")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Projects
+        </Button>
+        <Button onClick={() => navigate(`/site-progress/${id}/expenses`)} variant="outline" size="sm">
+          <Receipt className="h-4 w-4 mr-2" />
+          Expenses
+        </Button>
+      </div>
 
       <div>
-        <h1 className="text-3xl font-bold">{project.project_name}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">{project.project_name}</h1>
         <p className="text-muted-foreground">{project.project_code}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Total Budget</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs sm:text-sm">Total Budget</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">₹{formatIndianNumber(project.total_budget || 0)}</p>
+            <p className="text-lg sm:text-2xl font-bold">₹{formatIndianNumber(project.total_budget || 0)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Spent Amount</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs sm:text-sm">Spent Amount</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-500">₹{formatIndianNumber(project.spent_amount || 0)}</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-500">₹{formatIndianNumber(project.spent_amount || 0)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Remaining</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs sm:text-sm">Remaining</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-500">₹{formatIndianNumber((project.total_budget || 0) - (project.spent_amount || 0))}</p>
+            <p className="text-lg sm:text-2xl font-bold text-green-500">₹{formatIndianNumber((project.total_budget || 0) - (project.spent_amount || 0))}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Progress</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs sm:text-sm">Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold mb-2">{project.overall_progress_percentage || 0}%</p>
+            <p className="text-lg sm:text-2xl font-bold mb-2">{project.overall_progress_percentage || 0}%</p>
             <Progress value={project.overall_progress_percentage || 0} />
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="phases" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="phases">Phases</TabsTrigger>
-          <TabsTrigger value="daily">Daily Logs</TabsTrigger>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="labor">Labor</TabsTrigger>
-          <TabsTrigger value="equipment">Equipment</TabsTrigger>
-          <TabsTrigger value="inspections">Inspections</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-2">
+          <TabsTrigger value="phases" className="text-xs sm:text-sm">Phases</TabsTrigger>
+          <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
+          <TabsTrigger value="materials" className="text-xs sm:text-sm">Materials</TabsTrigger>
+          <TabsTrigger value="labor" className="text-xs sm:text-sm">Labor</TabsTrigger>
+          <TabsTrigger value="equipment" className="text-xs sm:text-sm">Equipment</TabsTrigger>
+          <TabsTrigger value="inspections" className="text-xs sm:text-sm">Inspect</TabsTrigger>
         </TabsList>
 
         <TabsContent value="phases" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Project Phases</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Project Phases</h2>
             <Button onClick={() => setPhaseDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Phase
@@ -257,11 +263,11 @@ export default function SiteProgressDetail() {
 
               return (
               <Card key={phase.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setViewPhaseDetails(phase)}>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle>{phase.phase_name}</CardTitle>
-                        <p className="text-sm text-muted-foreground">{phase.phase_code}</p>
+                <CardHeader className="pb-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base md:text-lg">{phase.phase_name}</CardTitle>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">{phase.phase_code}</p>
                       </div>
                       <Badge className={getPhaseStatusColor(phase.status)}>
                         {phase.status?.replace("_", " ")}
@@ -270,19 +276,19 @@ export default function SiteProgressDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm">
                       <span>Progress:</span>
                       <span className="font-semibold">{phase.progress_percentage}%</span>
                     </div>
                     <Progress value={phase.progress_percentage} />
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-xs sm:text-sm">
                       <div>
                         <p className="text-muted-foreground">Budget Allocated</p>
-                        <p className="font-semibold">₹{formatIndianNumber(phase.budget_allocated)}</p>
+                        <p className="font-semibold truncate">₹{formatIndianNumber(phase.budget_allocated)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Budget Spent</p>
-                        <p className="font-semibold text-primary">₹{formatIndianNumber(phase.budget_spent)}</p>
+                        <p className="font-semibold text-primary truncate">₹{formatIndianNumber(phase.budget_spent)}</p>
                       </div>
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
@@ -296,7 +302,8 @@ export default function SiteProgressDetail() {
                         }}
                       >
                         <DollarSign className="h-4 w-4 mr-1" />
-                        Add Payment
+                        <span className="hidden sm:inline">Add Payment</span>
+                        <span className="sm:hidden">Payment</span>
                       </Button>
                     </div>
                   </div>
@@ -314,8 +321,8 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="daily" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Daily Progress Logs</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Daily Progress Logs</h2>
             <Button onClick={() => setDailyLogDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Log
@@ -348,8 +355,8 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="materials" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Material Logs</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Material Logs</h2>
             <Button onClick={() => setMaterialDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Material
@@ -389,8 +396,8 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="labor" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Labor Logs</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Labor Logs</h2>
             <Button onClick={() => setLaborDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Labor
@@ -430,8 +437,8 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="equipment" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Equipment Logs</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Equipment Logs</h2>
             <Button onClick={() => setEquipmentDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Equipment
@@ -471,8 +478,8 @@ export default function SiteProgressDetail() {
         </TabsContent>
 
         <TabsContent value="inspections" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Inspections</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg md:text-xl font-semibold">Inspections</h2>
             <Button onClick={() => setInspectionDialogOpen(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Inspection
@@ -540,14 +547,6 @@ export default function SiteProgressDetail() {
               </TabsList>
               <TabsContent value="logs" className="space-y-4">
                 <div className="space-y-4">
-                  {dailyLogs
-                    .filter((log: any) => log.phase_id === viewPhaseDetails.id)
-                    .reduce((acc: any, log: any) => {
-                      const month = format(new Date(log.log_date), "MMMM yyyy");
-                      if (!acc[month]) acc[month] = [];
-                      acc[month].push(log);
-                      return acc;
-                    }, {})}
                   {Object.entries(
                     dailyLogs
                       .filter((log: any) => log.phase_id === viewPhaseDetails.id)

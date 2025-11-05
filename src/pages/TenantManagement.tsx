@@ -89,12 +89,14 @@ export default function TenantManagement() {
         throw new Error("Payment already logged for this month");
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("tenant_payment_logs").insert({
         tenant_management_id: tenantId,
         amount: tenant.rental_amount,
-        payment_date: format(monthDate, "yyyy-MM-dd"),
+        payment_date: format(new Date(), "yyyy-MM-dd"),
         payment_method: "Manual Entry",
         notes: `Payment for ${format(monthDate, "MMMM yyyy")}`,
+        created_by: user?.id,
       });
       if (error) throw error;
     },
