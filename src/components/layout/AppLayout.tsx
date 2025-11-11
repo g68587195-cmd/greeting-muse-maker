@@ -29,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">
           <TopBar />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-4 md:p-6">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background pt-14 md:pt-16 p-4 md:p-6">
             {children}
           </main>
         </div>

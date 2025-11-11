@@ -11,6 +11,8 @@ import {
   Home,
   Construction,
   FileText,
+  FolderOpen,
+  LineChart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +37,8 @@ const menuItems = [
   { title: "Maintenance", url: "/maintenance", icon: Wrench },
   { title: "Tenants", url: "/tenants", icon: Home },
   { title: "Site Progress", url: "/site-progress", icon: Construction },
+  { title: "Documents", url: "/documents", icon: FolderOpen },
+  { title: "Market Insights", url: "/market-insights", icon: LineChart },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 

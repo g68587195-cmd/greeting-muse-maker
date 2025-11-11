@@ -43,7 +43,7 @@ export default function Quotations() {
   }, []);
 
   const { data: quotations = [], isLoading } = useQuery({
-    queryKey: ["quotations"],
+    queryKey: ["quotations", isInvoiceMode],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -55,6 +55,7 @@ export default function Quotations() {
           clients(full_name, email, phone)
         `)
         .eq("user_id", user.id)
+        .eq("document_type", isInvoiceMode ? "invoice" : "quotation")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -111,13 +112,13 @@ export default function Quotations() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {quotations.map((quotation) => (
             <Card key={quotation.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">

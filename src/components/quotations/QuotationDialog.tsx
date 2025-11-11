@@ -141,6 +141,7 @@ export function QuotationDialog({ open, onOpenChange, quotation, isInvoiceMode =
         total_amount: total,
         created_by: user.id,
         status: quotation?.status || "draft",
+        document_type: isInvoiceMode ? "invoice" : "quotation",
       };
 
       let quotationResult;

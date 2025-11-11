@@ -18,6 +18,8 @@ import SiteProgressDetail from "./pages/SiteProgressDetail";
 import ProjectExpenses from "./pages/ProjectExpenses";
 import Projects from "./pages/Projects";
 import Quotations from "./pages/Quotations";
+import Documents from "./pages/Documents";
+import MarketInsights from "./pages/MarketInsights";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/site-progress/:id" element={<AppLayout><SiteProgressDetail /></AppLayout>} />
           <Route path="/site-progress/:id/expenses" element={<AppLayout><ProjectExpenses /></AppLayout>} />
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
+          <Route path="/documents" element={<AppLayout><Documents /></AppLayout>} />
+          <Route path="/market-insights" element={<AppLayout><MarketInsights /></AppLayout>} />
           <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

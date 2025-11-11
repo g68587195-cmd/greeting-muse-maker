@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import jsPDF from "jspdf";
@@ -251,6 +251,7 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="sr-only">{documentTitle} Details</DialogTitle>
         <div className="bg-white space-y-6 p-6">
           {/* Header */}
           <div className="flex items-start justify-between border-b pb-4">

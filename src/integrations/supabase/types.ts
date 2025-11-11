@@ -483,6 +483,56 @@ export type Database = {
         }
         Relationships: []
       }
+      property_documents: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          folder_name: string
+          id: string
+          notes: string | null
+          property_id: string | null
+          uploaded_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          folder_name: string
+          id?: string
+          notes?: string | null
+          property_id?: string | null
+          uploaded_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          folder_name?: string
+          id?: string
+          notes?: string | null
+          property_id?: string | null
+          uploaded_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_documents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_images: {
         Row: {
           created_at: string
@@ -572,6 +622,7 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           created_by: string | null
+          document_type: string | null
           id: string
           notes: string | null
           pdf_url: string | null
@@ -594,6 +645,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          document_type?: string | null
           id?: string
           notes?: string | null
           pdf_url?: string | null
@@ -616,6 +668,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          document_type?: string | null
           id?: string
           notes?: string | null
           pdf_url?: string | null
