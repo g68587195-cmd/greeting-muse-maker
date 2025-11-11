@@ -19,7 +19,7 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     log_date: new Date().toISOString().split('T')[0],
-    phase_id: "",
+    phase_id: null as string | null,
     work_completed: "",
     labor_count: "",
     weather_conditions: "",
@@ -63,7 +63,7 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
     onOpenChange(false);
     setFormData({
       log_date: new Date().toISOString().split('T')[0],
-      phase_id: "",
+      phase_id: null,
       work_completed: "",
       labor_count: "",
       weather_conditions: "",
@@ -94,11 +94,15 @@ export function DailyLogDialog({ open, onOpenChange, projectId }: DailyLogDialog
 
           <div>
             <Label htmlFor="phase_id">Project Phase</Label>
-            <Select value={formData.phase_id} onValueChange={(value) => setFormData({ ...formData, phase_id: value })}>
+            <Select 
+              value={formData.phase_id || "none"} 
+              onValueChange={(value) => setFormData({ ...formData, phase_id: value === "none" ? null : value })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select phase (optional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">No specific phase</SelectItem>
                 {phases.map((phase) => (
                   <SelectItem key={phase.id} value={phase.id}>
                     {phase.phase_name}

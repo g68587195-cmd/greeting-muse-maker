@@ -19,10 +19,11 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   };
 
   const isSold = property.status === 'sold';
+  const isRented = property.status === 'rented';
 
   return (
     <Card 
-      className={`group cursor-pointer overflow-hidden transition-all hover:shadow-lg ${isSold ? 'opacity-60' : ''}`}
+      className={`group cursor-pointer overflow-hidden transition-all hover:shadow-lg ${(isSold || isRented) ? 'opacity-60' : ''}`}
       onClick={onClick}
     >
       <div className="relative h-48 overflow-hidden bg-muted">

@@ -17,6 +17,7 @@ interface QuotationViewerModalProps {
 
 export function QuotationViewerModal({ open, onOpenChange, quotation, companyInfo, isInvoiceMode = false }: QuotationViewerModalProps) {
   const [fullQuotation, setFullQuotation] = useState<any>(null);
+  const [companyDetails, setCompanyDetails] = useState<any>(null);
 
   useEffect(() => {
     if (quotation && open) {
@@ -37,12 +38,22 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
 
     if (!error && data) {
       setFullQuotation(data);
+      
+      // Fetch company details
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_name, company_address, company_email, company_phone")
+        .eq("id", data.user_id)
+        .single();
+      
+      setCompanyDetails(profile);
     }
   };
 
   if (!fullQuotation) return null;
 
   const items = fullQuotation.quotation_items || [];
+  const documentTitle = isInvoiceMode ? "INVOICE" : "QUOTATION";
 
   const handleDownloadPDF = async () => {
     const pdf = new jsPDF();
@@ -50,68 +61,45 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
     const margin = 15;
     let yPos = 20;
 
-    // Company logo on right
-    if (companyInfo?.logo) {
-      try {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = companyInfo.logo;
-        await new Promise((resolve) => {
-          img.onload = resolve;
-        });
-        pdf.addImage(img, "PNG", pageWidth - 45, 10, 30, 30);
-      } catch (error) {
-        console.error("Error loading logo:", error);
-      }
-    }
-
     // Company name (left side, red color)
     pdf.setFontSize(18);
     pdf.setTextColor(220, 53, 69);
     pdf.setFont("helvetica", "bold");
-    pdf.text(companyInfo?.name || "Your Company", margin, yPos);
+    pdf.text(companyDetails?.company_name || "Your Company", margin, yPos);
 
-    // QUOTATION heading (right side, red color)
+    // INVOICE/QUOTATION heading (right side, red color)
     pdf.setFontSize(22);
     pdf.setTextColor(220, 53, 69);
-    const quotationWidth = pdf.getTextWidth("QUOTATION");
-    pdf.text("QUOTATION", pageWidth - quotationWidth - margin, yPos);
+    const docTitleWidth = pdf.getTextWidth(documentTitle);
+    pdf.text(documentTitle, pageWidth - docTitleWidth - margin, yPos);
 
     yPos += 8;
 
-    // Company details (small text)
+    // Company details (small text, left side)
     pdf.setFontSize(9);
     pdf.setTextColor(0, 0, 0);
     pdf.setFont("helvetica", "normal");
     
-    if (fullQuotation.user_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_address, company_email, company_phone")
-        .eq("id", fullQuotation.user_id)
-        .single();
-      
-      if (profile?.company_address) {
-        const addressLines = pdf.splitTextToSize(profile.company_address, 100);
-        addressLines.forEach((line: string) => {
-          pdf.text(line, margin, yPos);
-          yPos += 4;
-        });
-      }
-      if (profile?.company_email) {
-        pdf.text(`Email: ${profile.company_email}`, margin, yPos);
+    if (companyDetails?.company_address) {
+      const addressLines = pdf.splitTextToSize(companyDetails.company_address, 100);
+      addressLines.forEach((line: string) => {
+        pdf.text(line, margin, yPos);
         yPos += 4;
-      }
-      if (profile?.company_phone) {
-        pdf.text(`Phone: ${profile.company_phone}`, margin, yPos);
-        yPos += 4;
-      }
+      });
+    }
+    if (companyDetails?.company_email) {
+      pdf.text(`Email: ${companyDetails.company_email}`, margin, yPos);
+      yPos += 4;
+    }
+    if (companyDetails?.company_phone) {
+      pdf.text(`Phone: ${companyDetails.company_phone}`, margin, yPos);
+      yPos += 4;
     }
 
     // Reset yPos for right side
     let rightYPos = 28;
     
-    // Quotation number (right side)
+    // Document number (right side)
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
     pdf.text(`Number:`, pageWidth - 70, rightYPos);
@@ -254,13 +242,7 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
     pdf.text("Thank you for your business!", pageWidth / 2, yPos, { align: "center" });
     yPos += 5;
     
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_email")
-      .eq("id", fullQuotation.user_id)
-      .single();
-    
-    const contactEmail = profile?.company_email || `${companyInfo?.name?.toLowerCase().replace(/\s/g, '')}@gmail.com`;
+    const contactEmail = companyDetails?.company_email || "contact@company.com";
     pdf.text(`For inquiries, contact us at ${contactEmail}`, pageWidth / 2, yPos, { align: "center" });
 
     pdf.save(`${fullQuotation.quotation_number}.pdf`);
@@ -269,28 +251,27 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="space-y-6">
-          <div className="flex items-start justify-between">
+        <div className="bg-white space-y-6 p-6">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b pb-4">
             <div>
-              <h2 className="text-2xl font-bold text-red-600">{companyInfo?.name || "Your Company"}</h2>
+              <h2 className="text-2xl font-bold text-red-600">{companyDetails?.company_name || "Your Company"}</h2>
               <div className="mt-2 text-sm space-y-1 text-muted-foreground">
-                {fullQuotation.profiles?.company_address && <p>{fullQuotation.profiles.company_address}</p>}
-                {fullQuotation.profiles?.company_email && <p>Email: {fullQuotation.profiles.company_email}</p>}
-                {fullQuotation.profiles?.company_phone && <p>Phone: {fullQuotation.profiles.company_phone}</p>}
+                {companyDetails?.company_address && <p>{companyDetails.company_address}</p>}
+                {companyDetails?.company_email && <p>Email: {companyDetails.company_email}</p>}
+                {companyDetails?.company_phone && <p>Phone: {companyDetails.company_phone}</p>}
               </div>
             </div>
             <div className="text-right">
-              <h1 className="text-3xl font-bold text-red-600">INVOICE</h1>
+              <h1 className="text-3xl font-bold text-red-600">{documentTitle}</h1>
               <div className="mt-2 text-sm space-y-1">
                 <p><span className="font-semibold">Number:</span> {fullQuotation.quotation_number}</p>
                 <p><span className="font-semibold">Date:</span> {format(new Date(fullQuotation.quotation_date), "dd/MM/yyyy")}</p>
               </div>
-              {companyInfo?.logo && (
-                <img src={companyInfo.logo} alt="Company Logo" className="w-20 h-20 object-contain ml-auto mt-2" />
-              )}
             </div>
           </div>
 
+          {/* Bill To */}
           <div>
             <h3 className="font-bold text-lg mb-2">Bill To:</h3>
             <div className="text-sm space-y-1">
@@ -301,17 +282,18 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
             </div>
           </div>
 
+          {/* Items Table */}
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="text-left p-2 border-r">Description</th>
-                  <th className="text-center p-2 border-r">Qty</th>
-                  <th className="text-right p-2 border-r">Unit Price</th>
-                  <th className="text-right p-2 border-r">Subtotal</th>
-                  <th className="text-right p-2 border-r">CGST</th>
-                  <th className="text-right p-2 border-r">SGST</th>
-                  <th className="text-right p-2">Total</th>
+                  <th className="text-left p-3 border-r">Description</th>
+                  <th className="text-center p-3 border-r w-16">Qty</th>
+                  <th className="text-right p-3 border-r w-24">Unit Price</th>
+                  <th className="text-right p-3 border-r w-28">Subtotal</th>
+                  <th className="text-right p-3 border-r w-20">CGST</th>
+                  <th className="text-right p-3 border-r w-20">SGST</th>
+                  <th className="text-right p-3 w-28">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -322,19 +304,19 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
                   
                   return (
                     <tr key={item.id} className="border-t">
-                      <td className="p-2 border-r">{item.item_description}</td>
-                      <td className="text-center p-2 border-r">{item.quantity}</td>
-                      <td className="text-right p-2 border-r">₹{formatIndianNumber(item.rate)}</td>
-                      <td className="text-right p-2 border-r">₹{formatIndianNumber(item.amount)}</td>
-                      <td className="text-right p-2 border-r">
+                      <td className="p-3 border-r">{item.item_description}</td>
+                      <td className="text-center p-3 border-r">{item.quantity}</td>
+                      <td className="text-right p-3 border-r">₹{formatIndianNumber(item.rate)}</td>
+                      <td className="text-right p-3 border-r">₹{formatIndianNumber(item.amount)}</td>
+                      <td className="text-right p-3 border-r">
                         ₹{formatIndianNumber(cgst)}<br />
                         <span className="text-xs text-muted-foreground">({fullQuotation.cgst_rate}%)</span>
                       </td>
-                      <td className="text-right p-2 border-r">
+                      <td className="text-right p-3 border-r">
                         ₹{formatIndianNumber(sgst)}<br />
                         <span className="text-xs text-muted-foreground">({fullQuotation.sgst_rate}%)</span>
                       </td>
-                      <td className="text-right p-2 font-bold text-red-600">₹{formatIndianNumber(total)}</td>
+                      <td className="text-right p-3 font-bold text-red-600">₹{formatIndianNumber(total)}</td>
                     </tr>
                   );
                 })}
@@ -342,17 +324,18 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
             </table>
           </div>
 
+          {/* Totals */}
           <div className="flex justify-end">
-            <div className="w-64 space-y-2 text-sm">
-              <div className="flex justify-between">
+            <div className="w-80 space-y-2 text-sm">
+              <div className="flex justify-between py-1">
                 <span>Subtotal:</span>
                 <span>₹{formatIndianNumber(fullQuotation.subtotal || 0)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between py-1">
                 <span>Tax:</span>
                 <span>₹{formatIndianNumber((fullQuotation.cgst_amount || 0) + (fullQuotation.sgst_amount || 0))}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between py-1">
                 <span>Discount:</span>
                 <span>₹0</span>
               </div>
@@ -363,12 +346,14 @@ export function QuotationViewerModal({ open, onOpenChange, quotation, companyInf
             </div>
           </div>
 
+          {/* Footer */}
           <div className="text-center text-sm text-muted-foreground border-t pt-4">
             <p className="italic">Thank you for your business!</p>
-            <p>For inquiries, contact us at {fullQuotation.profiles?.company_email || `${companyInfo?.name?.toLowerCase().replace(/\s/g, '')}@gmail.com`}</p>
+            <p>For inquiries, contact us at {companyDetails?.company_email || "contact@company.com"}</p>
           </div>
 
-          <div className="flex justify-end">
+          {/* Download Button */}
+          <div className="flex justify-end pt-4">
             <Button onClick={handleDownloadPDF} className="gap-2">
               <Download className="h-4 w-4" />
               Download PDF

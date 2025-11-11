@@ -44,7 +44,17 @@ export function TenantDialog({ open, onOpenChange, tenant, onSuccess }: any) {
     const { error } = tenant
       ? await supabase.from("tenant_management").update(dataToSave).eq("id", tenant.id)
       : await supabase.from("tenant_management").insert([dataToSave]);
+    
     if (error) return toast.error(error.message);
+    
+    // Update property status to "rented" if not updating or if property changed
+    if (formData.property_id) {
+      await supabase
+        .from("properties")
+        .update({ status: "rented" })
+        .eq("id", formData.property_id);
+    }
+    
     toast.success(tenant ? "Updated" : "Created");
     onSuccess();
   };

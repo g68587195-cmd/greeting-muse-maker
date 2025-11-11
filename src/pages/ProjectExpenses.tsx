@@ -21,7 +21,7 @@ export default function ProjectExpenses() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    phase_id: "",
+    phase_id: null as string | null,
     expense_category: "",
     expense_description: "",
     amount: "",
@@ -85,7 +85,7 @@ export default function ProjectExpenses() {
       toast.success("Expense added");
       setDialogOpen(false);
       setFormData({
-        phase_id: "",
+        phase_id: null,
         expense_category: "",
         expense_description: "",
         amount: "",
@@ -204,7 +204,7 @@ export default function ProjectExpenses() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Amount</p>
                   <p className="font-bold text-lg">₹{formatIndianNumber(expense.amount)}</p>
@@ -214,7 +214,7 @@ export default function ProjectExpenses() {
                   <p className="font-medium">{format(new Date(expense.transaction_date), "dd MMM yyyy")}</p>
                 </div>
                 {expense.site_phases && (
-                  <div className="col-span-2 sm:col-span-1">
+                  <div>
                     <p className="text-muted-foreground">Phase</p>
                     <p className="font-medium truncate">{expense.site_phases.phase_name}</p>
                   </div>
@@ -274,12 +274,15 @@ export default function ProjectExpenses() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Phase (Optional)</Label>
-              <Select value={formData.phase_id} onValueChange={(value) => setFormData({ ...formData, phase_id: value })}>
+              <Select 
+                value={formData.phase_id || "none"} 
+                onValueChange={(value) => setFormData({ ...formData, phase_id: value === "none" ? null : value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select phase" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">General Expense</SelectItem>
+                  <SelectItem value="none">General Expense</SelectItem>
                   {phases.map((phase: any) => (
                     <SelectItem key={phase.id} value={phase.id}>
                       {phase.phase_name}

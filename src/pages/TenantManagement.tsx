@@ -141,13 +141,13 @@ export default function TenantManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tenant Management</h1>
-          <p className="text-muted-foreground mt-1">Manage rental units and tenants</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Tenant Management</h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage rental units and tenants</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+        <Button onClick={() => setIsDialogOpen(true)} className="gap-2" size="sm">
           <Plus className="h-4 w-4" />
           Add Tenant
         </Button>
@@ -155,10 +155,10 @@ export default function TenantManagement() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Monthly Payment Tracking</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle className="text-lg md:text-xl">Monthly Payment Tracking</CardTitle>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,9 +187,9 @@ export default function TenantManagement() {
               const paymentStatus = getPaymentStatus(tenant.id);
 
               return (
-                <div key={tenant.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={tenant.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold">{tenant.clients?.full_name}</h3>
                       <Badge className={getStatusColor(tenant.lease_status)}>
                         {tenant.lease_status}
@@ -198,7 +198,7 @@ export default function TenantManagement() {
                     <p className="text-sm text-muted-foreground">{tenant.properties?.title} - {tenant.unit_number}</p>
                     <p className="text-sm font-medium mt-1">₹{formatIndianNumber(tenant.rental_amount)}/month</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
                     {paymentStatus === "paid" ? (
                       <Badge className="bg-green-500">Paid</Badge>
                     ) : (
@@ -227,7 +227,7 @@ export default function TenantManagement() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -265,18 +265,20 @@ export default function TenantManagement() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Unit:</span>
-                  <span className="font-medium">{tenant.unit_number}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Rent:</span>
-                  <span className="font-medium">₹{formatIndianNumber(tenant.rental_amount)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Lease End:</span>
-                  <span className="font-medium">{new Date(tenant.lease_end_date).toLocaleDateString()}</span>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Unit:</span>
+                    <p className="font-medium">{tenant.unit_number}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Rent:</span>
+                    <p className="font-medium">₹{formatIndianNumber(tenant.rental_amount)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Lease End:</span>
+                    <p className="font-medium">{new Date(tenant.lease_end_date).toLocaleDateString()}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
