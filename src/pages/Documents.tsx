@@ -94,18 +94,23 @@ export default function Documents() {
         throw new Error("File size must be less than 2MB");
       }
 
-      // Upload file to storage
+      // Upload file to storage with public access
       const fileName = `${Date.now()}_${data.file.name}`;
+      const filePath = `${user.id}/${selectedProperty}/${data.folderName}/${fileName}`;
+      
       const { error: uploadError } = await supabase.storage
-        .from("project-documents")
-        .upload(`property_docs/${selectedProperty}/${data.folderName}/${fileName}`, data.file);
+        .from("property-images")
+        .upload(filePath, data.file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from("project-documents")
-        .getPublicUrl(`property_docs/${selectedProperty}/${data.folderName}/${fileName}`);
+        .from("property-images")
+        .getPublicUrl(filePath);
 
       // Save metadata to database
       const { error: dbError } = await supabase.from("property_documents").insert({
@@ -134,10 +139,18 @@ export default function Documents() {
 
   const deleteDocumentMutation = useMutation({
     mutationFn: async (doc: any) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Delete from storage if not placeholder
-      if (doc.file_type !== "folder") {
-        const path = `property_docs/${selectedProperty}/${doc.folder_name}/${doc.file_name}`;
-        await supabase.storage.from("project-documents").remove([path]);
+      if (doc.file_type !== "folder" && doc.file_url) {
+        const filePath = `${user.id}/${selectedProperty}/${doc.folder_name}/${doc.file_name.split('_').slice(1).join('_')}`;
+        const urlPath = doc.file_url.split('/').slice(-4).join('/');
+        try {
+          await supabase.storage.from("property-images").remove([urlPath]);
+        } catch (err) {
+          console.error("Storage delete error:", err);
+        }
       }
 
       // Delete from database
@@ -166,12 +179,12 @@ export default function Documents() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Documents</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">
-            Manage property documents and files
+          <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
+          <p className="text-muted-foreground mt-2">
+            Organize and manage property documents
           </p>
         </div>
         <div className="flex gap-2">
@@ -197,11 +210,11 @@ export default function Documents() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Select Property</CardTitle>
+          <CardTitle>Select Property</CardTitle>
         </CardHeader>
         <CardContent>
           <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Choose a property" />
             </SelectTrigger>
             <SelectContent>
@@ -239,21 +252,29 @@ export default function Documents() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredDocs.filter(doc => doc.file_type !== "folder").map((doc) => (
-              <Card key={doc.id} className="hover:shadow-md transition-shadow">
+              <Card key={doc.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
                 <CardContent className="p-4">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center">
-                      <FileText className="h-12 w-12 text-muted-foreground" />
+                  <div className="flex flex-col gap-3">
+                    <div 
+                      className="w-full aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center group-hover:from-primary/10 group-hover:to-primary/5 transition-colors"
+                      onClick={() => window.open(doc.file_url, "_blank")}
+                    >
+                      <FileText className="h-16 w-16 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
-                    <div className="w-full text-center space-y-1">
+                    <div className="space-y-1">
                       <p className="text-sm font-medium truncate" title={doc.file_name}>
                         {doc.file_name}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {(doc.file_size / 1024).toFixed(2)} KB
                       </p>
+                      {doc.notes && (
+                        <p className="text-xs text-muted-foreground line-clamp-2" title={doc.notes}>
+                          {doc.notes}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex gap-2 w-full">
+                    <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -265,7 +286,7 @@ export default function Documents() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 hover:bg-destructive hover:text-destructive-foreground"
                         onClick={() => deleteDocumentMutation.mutate(doc)}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -277,6 +298,19 @@ export default function Documents() {
             ))}
           </div>
         </div>
+      )}
+
+      {selectedProperty && folders.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FolderPlus className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No folders yet. Create one to start uploading documents.</p>
+            <Button onClick={() => setFolderDialogOpen(true)}>
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Create Folder
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
