@@ -39,6 +39,7 @@ const menuItems = [
   { title: "Site Progress", url: "/site-progress", icon: Construction },
   { title: "Documents", url: "/documents", icon: FolderOpen },
   { title: "Market Insights", url: "/market-insights", icon: LineChart },
+  { title: "Reports", url: "/reports", icon: BarChart3 },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
@@ -47,14 +48,14 @@ export function AppSidebar() {
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-6 w-6 text-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-md">
+            <Building2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">
+            <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight">
               Eduvanca Realestates
             </h1>
-            <p className="text-xs text-sidebar-foreground/70">Management System</p>
+            <p className="text-xs text-sidebar-foreground/70 mt-0.5">Management System</p>
           </div>
         </div>
       </SidebarHeader>

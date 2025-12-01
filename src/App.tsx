@@ -20,6 +20,7 @@ import Projects from "./pages/Projects";
 import Quotations from "./pages/Quotations";
 import Documents from "./pages/Documents";
 import MarketInsights from "./pages/MarketInsights";
+import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/projects" element={<AppLayout><Projects /></AppLayout>} />
           <Route path="/documents" element={<AppLayout><Documents /></AppLayout>} />
           <Route path="/market-insights" element={<AppLayout><MarketInsights /></AppLayout>} />
+          <Route path="/reports" element={<AppLayout><Reports /></AppLayout>} />
           <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
