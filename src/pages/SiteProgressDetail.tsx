@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Calendar, DollarSign, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, DollarSign, Receipt, Edit, Trash2 } from "lucide-react";
 import { formatIndianNumber } from "@/lib/formatIndianNumber";
 import { useState, useEffect } from "react";
 import { PhaseDialog } from "@/components/site/PhaseDialog";
@@ -15,10 +15,16 @@ import { LaborLogDialog } from "@/components/site/LaborLogDialog";
 import { EquipmentLogDialog } from "@/components/site/EquipmentLogDialog";
 import { InspectionDialog } from "@/components/site/InspectionDialog";
 import { PhasePaymentDialog } from "@/components/site/PhasePaymentDialog";
+import { DailyLogDetailModal } from "@/components/site/DailyLogDetailModal";
+import { MaterialLogDetailModal } from "@/components/site/MaterialLogDetailModal";
+import { LaborLogDetailModal } from "@/components/site/LaborLogDetailModal";
+import { EquipmentLogDetailModal } from "@/components/site/EquipmentLogDetailModal";
+import { ProjectTimeline } from "@/components/site/ProjectTimeline";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SearchInput } from "@/components/ui/search-input";
 import { format, isBefore, isAfter, startOfDay } from "date-fns";
 
 export default function SiteProgressDetail() {
@@ -34,6 +40,31 @@ export default function SiteProgressDetail() {
   const [phasePaymentDialogOpen, setPhasePaymentDialogOpen] = useState(false);
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
   const [viewPhaseDetails, setViewPhaseDetails] = useState<any>(null);
+  
+  // Detail modals
+  const [dailyLogDetail, setDailyLogDetail] = useState<any>(null);
+  const [materialDetail, setMaterialDetail] = useState<any>(null);
+  const [laborDetail, setLaborDetail] = useState<any>(null);
+  const [equipmentDetail, setEquipmentDetail] = useState<any>(null);
+  const [editingLog, setEditingLog] = useState<any>(null);
+  
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Delete mutations
+  const deleteLogMutation = useMutation({
+    mutationFn: async ({ table, id: logId }: { table: string; id: string }) => {
+      const { error } = await supabase.from(table as any).delete().eq("id", logId);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [`site_${variables.table}`, id] as any });
+      toast.success("Deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete");
+    },
+  });
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["site_project", id],
@@ -194,41 +225,49 @@ export default function SiteProgressDetail() {
         <p className="text-muted-foreground">{project.project_code}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs sm:text-sm">Total Budget</CardTitle>
+            <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Total Budget
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-lg sm:text-2xl font-bold">₹{formatIndianNumber(project.total_budget || 0)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs sm:text-sm">Spent Amount</CardTitle>
+            <CardTitle className="text-xs sm:text-sm">Spent</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg sm:text-2xl font-bold text-red-500">₹{formatIndianNumber(project.spent_amount || 0)}</p>
+            <p className="text-lg sm:text-2xl font-bold">₹{formatIndianNumber(project.spent_amount || 0)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {((project.spent_amount / project.total_budget) * 100).toFixed(1)}% used
+            </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs sm:text-sm">Remaining</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg sm:text-2xl font-bold text-green-500">₹{formatIndianNumber((project.total_budget || 0) - (project.spent_amount || 0))}</p>
+            <p className="text-lg sm:text-2xl font-bold">₹{formatIndianNumber((project.total_budget || 0) - (project.spent_amount || 0))}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
           <CardHeader className="pb-3">
             <CardTitle className="text-xs sm:text-sm">Progress</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-lg sm:text-2xl font-bold mb-2">{project.overall_progress_percentage || 0}%</p>
-            <Progress value={project.overall_progress_percentage || 0} />
+            <Progress value={project.overall_progress_percentage || 0} className="h-2" />
           </CardContent>
         </Card>
       </div>
+
+      <ProjectTimeline phases={phases} />
 
       <Tabs defaultValue="phases" className="w-full">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-2">
@@ -323,23 +362,40 @@ export default function SiteProgressDetail() {
         <TabsContent value="daily" className="space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 className="text-lg md:text-xl font-semibold">Daily Progress Logs</h2>
-            <Button onClick={() => setDailyLogDialogOpen(true)} size="sm">
+            <Button onClick={() => { setEditingLog(null); setDailyLogDialogOpen(true); }} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Log
             </Button>
           </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search daily logs..."
+            className="max-w-md"
+          />
           <div className="grid gap-4">
-            {dailyLogs.map((log: any) => (
-              <Card key={log.id}>
+            {dailyLogs.filter((log: any) => 
+              !searchQuery || 
+              log.work_completed?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              log.issues_reported?.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((log: any) => (
+              <Card key={log.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDailyLogDetail(log)}>
                 <CardHeader>
-                  <CardTitle className="text-base">{new Date(log.log_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{new Date(log.log_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</CardTitle>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingLog(log); setDailyLogDialogOpen(true); }}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     <div><span className="font-semibold">Work Completed:</span> {log.work_completed}</div>
                     <div><span className="font-semibold">Labor Count:</span> {log.labor_count}</div>
                     <div><span className="font-semibold">Weather:</span> {log.weather_conditions}</div>
-                    {log.issues_reported && <div><span className="font-semibold">Issues:</span> {log.issues_reported}</div>}
+                    {log.issues_reported && <div className="text-destructive"><span className="font-semibold">Issues:</span> {log.issues_reported}</div>}
                   </div>
                 </CardContent>
               </Card>
@@ -362,13 +418,28 @@ export default function SiteProgressDetail() {
               Add Material
             </Button>
           </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search materials..."
+            className="max-w-md"
+          />
           <div className="grid gap-4">
-            {materials.map((material: any) => (
-              <Card key={material.id}>
+            {materials.filter((material: any) =>
+              !searchQuery ||
+              material.material_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              material.supplier_name?.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((material: any) => (
+              <Card key={material.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setMaterialDetail(material)}>
                 <CardHeader>
-                  <div className="flex justify-between">
-                    <CardTitle className="text-base">{material.material_name}</CardTitle>
-                    <Badge variant="outline">{material.material_category}</Badge>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-base">{material.material_name}</CardTitle>
+                      {material.material_category && <Badge variant="outline" className="mt-1">{material.material_category}</Badge>}
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={(e) => e.stopPropagation()}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -379,8 +450,14 @@ export default function SiteProgressDetail() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total Cost</p>
-                      <p className="font-semibold">₹{formatIndianNumber(material.total_cost)}</p>
+                      <p className="font-semibold text-primary">₹{formatIndianNumber(material.total_cost || 0)}</p>
                     </div>
+                    {material.supplier_name && (
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground">Supplier</p>
+                        <p className="font-medium">{material.supplier_name}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -620,6 +697,72 @@ export default function SiteProgressDetail() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Detail Modals */}
+      <DailyLogDetailModal
+        open={!!dailyLogDetail}
+        onOpenChange={(open) => !open && setDailyLogDetail(null)}
+        log={dailyLogDetail}
+        onEdit={() => {
+          setEditingLog(dailyLogDetail);
+          setDailyLogDetail(null);
+          setDailyLogDialogOpen(true);
+        }}
+        onDelete={() => {
+          if (dailyLogDetail) {
+            deleteLogMutation.mutate({ table: "daily_logs", id: dailyLogDetail.id });
+            setDailyLogDetail(null);
+          }
+        }}
+      />
+      
+      <MaterialLogDetailModal
+        open={!!materialDetail}
+        onOpenChange={(open) => !open && setMaterialDetail(null)}
+        log={materialDetail}
+        onEdit={() => {
+          setMaterialDetail(null);
+          setMaterialDialogOpen(true);
+        }}
+        onDelete={() => {
+          if (materialDetail) {
+            deleteLogMutation.mutate({ table: "materials_log", id: materialDetail.id });
+            setMaterialDetail(null);
+          }
+        }}
+      />
+      
+      <LaborLogDetailModal
+        open={!!laborDetail}
+        onOpenChange={(open) => !open && setLaborDetail(null)}
+        log={laborDetail}
+        onEdit={() => {
+          setLaborDetail(null);
+          setLaborDialogOpen(true);
+        }}
+        onDelete={() => {
+          if (laborDetail) {
+            deleteLogMutation.mutate({ table: "labor_log", id: laborDetail.id });
+            setLaborDetail(null);
+          }
+        }}
+      />
+      
+      <EquipmentLogDetailModal
+        open={!!equipmentDetail}
+        onOpenChange={(open) => !open && setEquipmentDetail(null)}
+        log={equipmentDetail}
+        onEdit={() => {
+          setEquipmentDetail(null);
+          setEquipmentDialogOpen(true);
+        }}
+        onDelete={() => {
+          if (equipmentDetail) {
+            deleteLogMutation.mutate({ table: "equipment_log", id: equipmentDetail.id });
+            setEquipmentDetail(null);
+          }
+        }}
+      />
     </div>
   );
 }
