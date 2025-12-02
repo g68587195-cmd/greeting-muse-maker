@@ -19,6 +19,8 @@ import { DailyLogDetailModal } from "@/components/site/DailyLogDetailModal";
 import { MaterialLogDetailModal } from "@/components/site/MaterialLogDetailModal";
 import { LaborLogDetailModal } from "@/components/site/LaborLogDetailModal";
 import { EquipmentLogDetailModal } from "@/components/site/EquipmentLogDetailModal";
+import { InspectionDetailModal } from "@/components/site/InspectionDetailModal";
+import { SiteDocumentsTab } from "@/components/site/SiteDocumentsTab";
 import { ProjectTimeline } from "@/components/site/ProjectTimeline";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -41,11 +43,11 @@ export default function SiteProgressDetail() {
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>("");
   const [viewPhaseDetails, setViewPhaseDetails] = useState<any>(null);
   
-  // Detail modals
   const [dailyLogDetail, setDailyLogDetail] = useState<any>(null);
   const [materialDetail, setMaterialDetail] = useState<any>(null);
   const [laborDetail, setLaborDetail] = useState<any>(null);
   const [equipmentDetail, setEquipmentDetail] = useState<any>(null);
+  const [inspectionDetail, setInspectionDetail] = useState<any>(null);
   const [editingLog, setEditingLog] = useState<any>(null);
   
   // Search
@@ -270,13 +272,14 @@ export default function SiteProgressDetail() {
       <ProjectTimeline phases={phases} />
 
       <Tabs defaultValue="phases" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-2">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 gap-2">
           <TabsTrigger value="phases" className="text-xs sm:text-sm">Phases</TabsTrigger>
           <TabsTrigger value="daily" className="text-xs sm:text-sm">Daily</TabsTrigger>
           <TabsTrigger value="materials" className="text-xs sm:text-sm">Materials</TabsTrigger>
           <TabsTrigger value="labor" className="text-xs sm:text-sm">Labor</TabsTrigger>
           <TabsTrigger value="equipment" className="text-xs sm:text-sm">Equipment</TabsTrigger>
           <TabsTrigger value="inspections" className="text-xs sm:text-sm">Inspect</TabsTrigger>
+          <TabsTrigger value="documents" className="text-xs sm:text-sm">Docs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="phases" className="space-y-4">
@@ -564,7 +567,11 @@ export default function SiteProgressDetail() {
           </div>
           <div className="grid gap-4">
             {inspections.map((inspection: any) => (
-              <Card key={inspection.id}>
+              <Card 
+                key={inspection.id} 
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => setInspectionDetail(inspection)}
+              >
                 <CardHeader>
                   <div className="flex justify-between">
                     <CardTitle className="text-base">{inspection.inspection_type}</CardTitle>
@@ -592,6 +599,10 @@ export default function SiteProgressDetail() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-4">
+          <SiteDocumentsTab projectId={id!} />
         </TabsContent>
       </Tabs>
 
@@ -760,6 +771,23 @@ export default function SiteProgressDetail() {
           if (equipmentDetail) {
             deleteLogMutation.mutate({ table: "equipment_log", id: equipmentDetail.id });
             setEquipmentDetail(null);
+          }
+        }}
+      />
+      
+      <InspectionDetailModal
+        open={!!inspectionDetail}
+        onOpenChange={(open) => !open && setInspectionDetail(null)}
+        inspection={inspectionDetail}
+        projectId={id!}
+        onEdit={() => {
+          setInspectionDetail(null);
+          setInspectionDialogOpen(true);
+        }}
+        onDelete={() => {
+          if (inspectionDetail) {
+            deleteLogMutation.mutate({ table: "inspections", id: inspectionDetail.id });
+            setInspectionDetail(null);
           }
         }}
       />

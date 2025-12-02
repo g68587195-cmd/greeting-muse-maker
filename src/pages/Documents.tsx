@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, FolderPlus, FileText, Trash2, Download } from "lucide-react";
+import { Plus, FolderPlus, FileText, Trash2, Download, Eye, FileType } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentViewer } from "@/components/documents/DocumentViewer";
 
 export default function Documents() {
   const queryClient = useQueryClient();
@@ -22,6 +23,7 @@ export default function Documents() {
     file: null as File | null,
     notes: "",
   });
+  const [viewingDocument, setViewingDocument] = useState<any>(null);
 
   const { data: properties = [] } = useQuery({
     queryKey: ["properties"],
@@ -89,9 +91,10 @@ export default function Documents() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !selectedProperty) throw new Error("No user or property selected");
 
-      // Check file size (2MB limit)
-      if (data.file.size > 2 * 1024 * 1024) {
-        throw new Error("File size must be less than 2MB");
+      // Check file size (5MB limit for PDFs, 2MB for others)
+      const maxSize = data.file.type === "application/pdf" ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+      if (data.file.size > maxSize) {
+        throw new Error(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
       }
 
       // Upload file to storage with public access
@@ -251,51 +254,79 @@ export default function Documents() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredDocs.filter(doc => doc.file_type !== "folder").map((doc) => (
-              <Card key={doc.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
-                <CardContent className="p-4">
-                  <div className="flex flex-col gap-3">
-                    <div 
-                      className="w-full aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center group-hover:from-primary/10 group-hover:to-primary/5 transition-colors"
-                      onClick={() => window.open(doc.file_url, "_blank")}
-                    >
-                      <FileText className="h-16 w-16 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium truncate" title={doc.file_name}>
-                        {doc.file_name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {(doc.file_size / 1024).toFixed(2)} KB
-                      </p>
-                      {doc.notes && (
-                        <p className="text-xs text-muted-foreground line-clamp-2" title={doc.notes}>
-                          {doc.notes}
+            {filteredDocs.filter(doc => doc.file_type !== "folder").map((doc) => {
+              const isPDF = doc.file_type === "application/pdf";
+              const isImage = doc.file_type?.startsWith("image/");
+              
+              return (
+                <Card key={doc.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col gap-3">
+                      <div 
+                        className="w-full aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center group-hover:from-primary/10 group-hover:to-primary/5 transition-colors"
+                        onClick={() => setViewingDocument(doc)}
+                      >
+                        {isPDF ? (
+                          <FileType className="h-16 w-16 text-red-500 group-hover:text-red-600 transition-colors" />
+                        ) : isImage ? (
+                          <img src={doc.file_url} alt={doc.file_name} className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <FileText className="h-16 w-16 text-muted-foreground group-hover:text-primary transition-colors" />
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium truncate" title={doc.file_name}>
+                          {doc.file_name}
                         </p>
-                      )}
+                        <p className="text-xs text-muted-foreground">
+                          {(doc.file_size / 1024).toFixed(2)} KB
+                        </p>
+                        {doc.notes && (
+                          <p className="text-xs text-muted-foreground line-clamp-2" title={doc.notes}>
+                            {doc.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingDocument(doc);
+                          }}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(doc.file_url, "_blank");
+                          }}
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteDocumentMutation.mutate(doc);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => window.open(doc.file_url, "_blank")}
-                      >
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={() => deleteDocumentMutation.mutate(doc)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}
@@ -364,14 +395,18 @@ export default function Documents() {
               </Select>
             </div>
             <div>
-              <Label>File (Max 2MB)</Label>
+              <Label>File (Max 2MB for images, 5MB for PDFs)</Label>
               <Input
                 type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setFileData({ ...fileData, file });
                 }}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Supported formats: PDF, Word, Excel, Images
+              </p>
             </div>
             <div>
               <Label>Notes</Label>
@@ -392,6 +427,12 @@ export default function Documents() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DocumentViewer
+        open={!!viewingDocument}
+        onOpenChange={(open) => !open && setViewingDocument(null)}
+        document={viewingDocument}
+      />
     </div>
   );
 }

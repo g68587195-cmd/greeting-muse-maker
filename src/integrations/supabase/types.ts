@@ -71,6 +71,7 @@ export type Database = {
           lead_phone: string | null
           notes: string | null
           property_id: string | null
+          purpose: string | null
           source: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
@@ -87,6 +88,7 @@ export type Database = {
           lead_phone?: string | null
           notes?: string | null
           property_id?: string | null
+          purpose?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
@@ -103,6 +105,7 @@ export type Database = {
           lead_phone?: string | null
           notes?: string | null
           property_id?: string | null
+          purpose?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
