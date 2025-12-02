@@ -37,6 +37,7 @@ const formSchema = z.object({
   lead_phone: z.string().optional(),
   property_id: z.string().optional(),
   status: z.string(),
+  purpose: z.string().optional(),
   source: z.string().optional(),
   follow_up_date: z.string().optional(),
   notes: z.string().optional(),
@@ -95,6 +96,7 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
         lead_phone: lead.lead_phone || "",
         property_id: lead.property_id || "",
         status: lead.status || "new",
+        purpose: lead.purpose || "",
         source: lead.source || "",
         follow_up_date: lead.follow_up_date || "",
         notes: lead.notes || "",
@@ -118,6 +120,23 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
 
     if (!lead) {
       leadData.user_id = user.id;
+    }
+
+    // Auto-convert to client if status is qualified
+    if (values.status === "qualified" && lead?.status !== "qualified") {
+      const { error: clientError } = await supabase.from("clients").insert({
+        user_id: user.id,
+        full_name: values.lead_name,
+        email: values.lead_email || null,
+        phone: values.lead_phone || null,
+        notes: values.notes || null,
+      });
+      
+      if (clientError) {
+        toast.error("Failed to auto-create client");
+      } else {
+        toast.success("Lead qualified and converted to client!");
+      }
     }
 
     const { error } = lead
@@ -228,6 +247,32 @@ export function LeadDialog({ open, onOpenChange, lead, onSuccess }: LeadDialogPr
                         <SelectItem value="negotiating">Negotiating</SelectItem>
                         <SelectItem value="converted">Converted</SelectItem>
                         <SelectItem value="lost">Lost</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="purpose"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purpose</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select purpose" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="investment">Investment</SelectItem>
+                        <SelectItem value="house">House</SelectItem>
+                        <SelectItem value="land">Land</SelectItem>
+                        <SelectItem value="agri_land">Agricultural Land</SelectItem>
+                        <SelectItem value="commercial">Commercial</SelectItem>
+                        <SelectItem value="rental">Rental</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

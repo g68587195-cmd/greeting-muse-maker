@@ -24,14 +24,30 @@ const statusColors: Record<string, string> = {
   lost: "bg-red-500",
 };
 
+const purposeColors: Record<string, string> = {
+  investment: "bg-emerald-500",
+  house: "bg-sky-500",
+  land: "bg-amber-500",
+  agri_land: "bg-lime-500",
+  commercial: "bg-indigo-500",
+  rental: "bg-rose-500",
+};
+
 export function LeadCard({ lead, onClick, onStatusChange }: LeadCardProps) {
   return (
     <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-2">
-          <Badge className={statusColors[lead.status]}>
-            {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-          </Badge>
+          <div className="flex gap-2 flex-wrap">
+            <Badge className={statusColors[lead.status]}>
+              {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+            </Badge>
+            {lead.purpose && lead.purpose !== "none" && (
+              <Badge className={purposeColors[lead.purpose] || "bg-gray-500"}>
+                {lead.purpose.replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+              </Badge>
+            )}
+          </div>
           <div onClick={(e) => e.stopPropagation()}>
             <Select value={lead.status} onValueChange={onStatusChange}>
               <SelectTrigger className="w-[140px] h-8">

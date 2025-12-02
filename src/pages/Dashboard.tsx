@@ -245,20 +245,19 @@ export default function Dashboard() {
       title: "Active Sites",
       value: stats.activeSites,
       icon: Calendar,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-100",
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
     },
+  ];
   ];
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm md:text-base">Welcome to Real Estate Management System</p>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Welcome to Real Estate Management System</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <Card key={card.title} className="transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -319,9 +318,9 @@ export default function Dashboard() {
             {leadStatus.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={leadStatus}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
                   <Tooltip />
                   <Bar dataKey="value">
                     {leadStatus.map((entry, index) => (
@@ -337,6 +336,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
 
         {monthlyRevenue.length > 0 && (
           <Card className="md:col-span-2">
