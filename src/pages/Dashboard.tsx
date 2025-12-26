@@ -249,10 +249,10 @@ export default function Dashboard() {
       bgColor: "bg-indigo-100",
     },
   ];
-  ];
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Welcome to Real Estate Management System</p>
       </div>
@@ -336,10 +336,9 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
 
         {monthlyRevenue.length > 0 && (
-          <Card className="md:col-span-2">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
             </CardHeader>
